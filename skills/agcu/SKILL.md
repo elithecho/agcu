@@ -12,31 +12,9 @@ metadata:
 
 You have access to `agcu`, a CLI tool that controls desktop applications. You can click buttons, type text, read screens, scroll, drag files, move windows — all from the terminal.
 
-## Install and check
+## Installation and permissions
 
-```bash
-npm install -g agcu@0.1.0
-agcu --version
-agcu check-permissions
-agcu --help
-```
-
-The published package includes native binaries; Rust is not required. For a local source build, use `cargo install --path cli` from the repository root instead. Do not silently change approval settings or grant permissions.
-
-## First-run setup (user action)
-
-The first time you run an `agcu` command, Claude Code prompts the user to approve it. The user has three options, in order of preference:
-
-1. **Easiest** — run `agcu setup` in a terminal. Interactive wizard that writes `Bash(agcu *)` to the right settings file. One-time. If the user seems frustrated by repeated approval prompts, suggest this.
-
-   If you (the agent) are running it yourself and can't answer prompts, use the non-interactive flags:
-   - `agcu setup --yes` → unsupervised + global (only if the user explicitly requests this approval policy)
-   - `agcu setup --mode <unsupervised|supervised> --scope <global|project>` for specific combos
-
-2. **Quickest** — pick _"Yes, and don't ask again for: `agcu *`"_ in the approval prompt. Covers only that specific subcommand pattern; you'll get prompted again for other subcommands.
-3. **Manual** — add `"Bash(agcu *)"` to `~/.claude/settings.json` under `permissions.allow`.
-
-Do not attempt to modify the user's settings file yourself — direct them to `agcu setup` instead.
+See the [installation and permissions reference](references/installation.md) for install/check commands and first-run setup.
 
 ## How to think
 
@@ -247,6 +225,70 @@ agcu key cmd+a -a Slack                # select all
 agcu key backspace -a Slack            # clear
 agcu type "your text" -a Slack         # now type
 ```
+
+## Verification
+
+Never assume an action worked. Verify by checking a **state-bearing attribute**, not just by looking at the tree again.
+
+### The `id` vs `name` distinction (critical)
+
+Many apps give a button a **fixed `id`** (the slot) and a **changing `name`** (the current label).
+
+Music's transport button is the canonical example:
+
+- `id` is always `"play"` — it identifies the button as "the transport button", even when currently playing.
+- `name` flips between `"play"` and `"pause"` depending on playback state.
+
+**To detect state, read `name`, not `id`:**
+
+```bash
+# check if music is playing
+agcu find 'id="play"' -a Music --compact
+# → [{"name":"pause", ...}]   ← means: playback is ON
+# → [{"name":"play", ...}]    ← means: playback is OFF
+```
+
+The same pattern appears in many apps: bookmark/unbookmark, mute/unmute, expand/collapse, follow/unfollow. When you want to confirm a toggle worked, always read the element's **current `name`** after the action.
+
+### Inline verification with `--expect`
+
+```bash
+agcu click @e5 --expect 'name="Dashboard"'
+# clicks, then polls for an element with name="Dashboard". Fails if it never appears.
+```
+
+### Reading values
+
+```bash
+agcu get-value @e3                     # one element's value + role + position
+agcu find 'id="play"' -a Music --compact   # most stable if id is known
+agcu snapshot -a Safari -i -c          # broad check
+```
+
+### Idempotent typing
+
+```bash
+agcu ensure-text @e3 "hello"           # only types if value differs
+```
+
+### Reading dynamic computed values (e.g., Calculator result)
+
+Some apps don't surface the result as a normal `value` on a labeled element — it's hidden in a `staticText` node. Use `tree` and walk for any node with a `value`:
+
+```bash
+agcu tree -a Calculator -d 8 --compact | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+def walk(n):
+    if n.get('value'): print(n.get('role'), '=', repr(n['value']))
+    for c in n.get('children', []): walk(c)
+walk(d)
+"
+# → staticText = '1,234×7'
+# → staticText = '8,638'
+```
+
+**Locale gotcha:** numbers are locale-formatted. Indian locale shows `7^8 = 57,64,801`, international shows `5,764,801`. They're the same value. Before comparing, strip commas and spaces.
 
 ## Waiting
 
