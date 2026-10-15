@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+// Keep the existing cache location across the public command rename.
 const REFS_PATH: &str = ".agent-cu/refs.json";
 
 #[derive(Debug, Serialize)]
@@ -202,7 +203,7 @@ fn load_refs() -> agent_computer_use_core::Result<HashMap<String, RefEntry>> {
 
     let contents = std::fs::read_to_string(&path).map_err(|_| {
         agent_computer_use_core::Error::PlatformError {
-            message: "no snapshot refs cached — run `agent-computer-use snapshot` first".into(),
+            message: "no snapshot refs cached — run `agcu snapshot` first".into(),
         }
     })?;
 
@@ -210,13 +211,11 @@ fn load_refs() -> agent_computer_use_core::Result<HashMap<String, RefEntry>> {
         let age = now_secs().saturating_sub(cache.timestamp);
         if age > STALE_THRESHOLD_SECS {
             tracing::warn!(
-                "refs are {}s old (snapshot taken {}s ago) — consider re-running `agent-computer-use snapshot`",
+                "refs are {}s old (snapshot taken {}s ago) — consider re-running `agcu snapshot`",
                 age,
                 age
             );
-            eprintln!(
-                "warning: snapshot refs are {age}s old — run `agent-computer-use snapshot` to refresh"
-            );
+            eprintln!("warning: snapshot refs are {age}s old — run `agcu snapshot` to refresh");
         }
         return Ok(cache.refs);
     }
@@ -233,9 +232,7 @@ pub fn resolve_ref(ref_str: &str) -> agent_computer_use_core::Result<SelectorCha
     let entry =
         refs.get(ref_id)
             .ok_or_else(|| agent_computer_use_core::Error::ElementNotFound {
-                message: format!(
-                    "ref '@{ref_id}' not found — run `agent-computer-use snapshot` to refresh"
-                ),
+                message: format!("ref '@{ref_id}' not found — run `agcu snapshot` to refresh"),
             })?;
 
     let mut selector = Selector::new();

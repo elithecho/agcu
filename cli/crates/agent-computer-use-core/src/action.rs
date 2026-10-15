@@ -64,6 +64,8 @@ pub enum Action {
         path: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         app: Option<String>,
+        #[serde(default, skip_serializing_if = "is_false")]
+        grid: bool,
     },
 }
 
@@ -116,4 +118,25 @@ fn default_click_count() -> u32 {
 
 fn default_scroll_amount() -> u32 {
     3
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn screenshot_old_payload_and_grid_round_trip() {
+        let old = r#"{"type":"screenshot","path":"plain.png","app":"App"}"#;
+        let action: Action = serde_json::from_str(old).unwrap();
+        assert!(matches!(action, Action::Screenshot { grid: false, .. }));
+        assert_eq!(serde_json::to_string(&action).unwrap(), old);
+        let grid = r#"{"type":"screenshot","grid":true}"#;
+        let action: Action = serde_json::from_str(grid).unwrap();
+        assert!(matches!(action, Action::Screenshot { grid: true, .. }));
+        assert_eq!(serde_json::to_string(&action).unwrap(), grid);
+    }
 }

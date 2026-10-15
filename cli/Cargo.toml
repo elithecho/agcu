@@ -3,12 +3,12 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.82"
 license = "MIT"
-repository = "https://github.com/kortix-ai/agent-computer-use"
-homepage = "https://github.com/kortix-ai/agent-computer-use"
+repository = "https://github.com/elithecho/agcu"
+homepage = "https://github.com/elithecho/agcu"
 description = "Computer use CLI for AI agents — control any app via the accessibility tree"
 keywords = ["accessibility", "automation", "cli", "desktop", "ai-agent"]
 categories = ["command-line-utilities", "accessibility", "os"]
@@ -32,7 +32,7 @@ clap = { version = "4", features = ["derive"] }
 clap_complete = "4"
 
 [package]
-name = "agent-computer-use"
+name = "agcu"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -41,7 +41,7 @@ repository.workspace = true
 description.workspace = true
 
 [[bin]]
-name = "agent-cu"
+name = "agcu"
 path = "src/main.rs"
 
 [dependencies]

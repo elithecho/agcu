@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Core types, traits, and abstractions for agent-computer-use — platform-agnostic"
+description = "Core types, traits, and abstractions for agcu — platform-agnostic"
 
 [dependencies]
 serde = { workspace = true }

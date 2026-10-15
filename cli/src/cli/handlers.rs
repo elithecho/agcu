@@ -362,11 +362,12 @@ pub async fn run(
             output.print(&results);
         }
 
-        Command::Screenshot { path, app } => {
+        Command::Screenshot { path, app, grid } => {
             let result = platform
                 .perform(&Action::Screenshot {
                     path,
                     app: app.clone(),
+                    grid,
                 })
                 .await?;
             output.print(&result);
@@ -433,12 +434,7 @@ pub async fn run(
 
         Command::Completions { shell } => {
             let mut cmd = <Cli as clap::CommandFactory>::command();
-            clap_complete::generate(
-                shell,
-                &mut cmd,
-                "agent-computer-use",
-                &mut std::io::stdout(),
-            );
+            clap_complete::generate(shell, &mut cmd, "agcu", &mut std::io::stdout());
         }
 
         Command::CheckPermissions => {

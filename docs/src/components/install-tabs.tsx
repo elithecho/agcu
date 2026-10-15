@@ -6,10 +6,10 @@ import { CodeBlock } from './code-block';
 type ManagerCommand = { id: string; label: string; cmd: string };
 
 const installCommands: ManagerCommand[] = [
-  { id: 'npm', label: 'npm', cmd: 'npm install -g agent-cu' },
-  { id: 'pnpm', label: 'pnpm', cmd: 'pnpm add -g agent-cu' },
-  { id: 'yarn', label: 'yarn', cmd: 'yarn global add agent-cu' },
-  { id: 'bun', label: 'bun', cmd: 'bun add -g agent-cu' },
+  { id: 'npm', label: 'npm', cmd: 'npm install -g agcu@0.1.0' },
+  { id: 'pnpm', label: 'pnpm', cmd: 'pnpm add -g agcu@0.1.0' },
+  { id: 'yarn', label: 'yarn', cmd: 'yarn global add agcu@0.1.0' },
+  { id: 'bun', label: 'bun', cmd: 'bun add -g agcu@0.1.0' },
 ];
 
 export function InstallTabs({ commands = installCommands }: { commands?: ManagerCommand[] }) {

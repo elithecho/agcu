@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/docs';
 ## Usage
 
 ```bash
-agent-cu type <TEXT> [OPTIONS]
+agcu type <TEXT> [OPTIONS]
 ```
 
 ## Options
@@ -29,8 +29,8 @@ agent-cu type <TEXT> [OPTIONS]
 Uses AXSetValue — reliable, headless, no focus steal:
 
 ```bash
-agent-cu type "hello" -s @e3
-agent-cu type "john@example.com" -s 'id="email"'
+agcu type "hello" -s @e3
+agcu type "john@example.com" -s 'id="email"'
 ```
 
 ### Without selector
@@ -38,8 +38,8 @@ agent-cu type "john@example.com" -s 'id="email"'
 Simulates keypresses into the focused app — needs focus:
 
 ```bash
-agent-cu type "hello" -a Safari
-agent-cu type "search query" -a Music
+agcu type "hello" -a Safari
+agcu type "search query" -a Music
 ```
 
 Always prefer `-s @ref` when you have a ref.
@@ -48,16 +48,16 @@ Always prefer `-s @ref` when you have a ref.
 
 ```bash
 # Type into a specific field
-agent-cu type "hello world" -s @e3
+agcu type "hello world" -s @e3
 
 # Append without clearing
-agent-cu type " more text" -s @e3 --append
+agcu type " more text" -s @e3 --append
 
 # Type and submit
-agent-cu type "search query" -s @e5 --submit
+agcu type "search query" -s @e5 --submit
 
 # Idempotent typing (only types if value differs)
-agent-cu ensure-text @e3 "hello"
+agcu ensure-text @e3 "hello"
 ```
 
 ## CDP (Electron apps)
@@ -67,8 +67,8 @@ For Electron apps, `type -s @ref` uses JavaScript to set the value. For `type -a
 When typing into Electron search fields (React inputs), click the input first:
 
 ```bash
-agent-cu click @e18                     # focus the input
-agent-cu key cmd+a -a Slack             # select all
-agent-cu key backspace -a Slack         # clear
-agent-cu type "search text" -a Slack    # type via insertText
+agcu click @e18                     # focus the input
+agcu key cmd+a -a Slack             # select all
+agcu key backspace -a Slack         # clear
+agcu type "search text" -a Slack    # type via insertText
 ```

@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "MCP (Model Context Protocol) server for agent-computer-use — exposes computer control as AI agent tools"
+description = "MCP (Model Context Protocol) server for agcu — exposes computer control as AI agent tools"
 
 [dependencies]
 agent-computer-use-core = { workspace = true }

@@ -10,11 +10,11 @@ function getBinaryName() {
   const arch = os.arch();
 
   const map = {
-    'darwin-arm64': 'agent-computer-use-macos-arm64',
-    'darwin-x64': 'agent-computer-use-macos-x64',
-    'linux-x64': 'agent-computer-use-linux-x64',
-    'linux-arm64': 'agent-computer-use-linux-arm64',
-    'win32-x64': 'agent-computer-use-windows-x64.exe',
+    'darwin-arm64': 'agcu-macos-arm64',
+    'darwin-x64': 'agcu-macos-x64',
+    'linux-x64': 'agcu-linux-x64',
+    'linux-arm64': 'agcu-linux-arm64',
+    'win32-x64': 'agcu-windows-x64.exe',
   };
 
   const key = `${platform}-${arch}`;
@@ -30,9 +30,10 @@ function findBinary() {
     if (fs.existsSync(platformPath)) return platformPath;
   }
 
+  const executable = os.platform() === 'win32' ? 'agcu.exe' : 'agcu';
   const devPaths = [
-    path.join(binDir, '..', 'cli', 'target', 'release', 'agent-cu'),
-    path.join(binDir, '..', 'cli', 'target', 'debug', 'agent-cu'),
+    path.join(binDir, '..', 'cli', 'target', 'release', executable),
+    path.join(binDir, '..', 'cli', 'target', 'debug', executable),
   ];
 
   for (const p of devPaths) {
@@ -40,15 +41,16 @@ function findBinary() {
   }
 
   try {
-    execFileSync('which', ['agent-cu'], { stdio: 'pipe' });
-    return 'agent-cu';
+    const candidate = execFileSync('which', ['agcu'], { encoding: 'utf8' }).trim();
+    // An npm bin shim may resolve to this launcher; don't recursively launch it.
+    if (fs.realpathSync(candidate) !== fs.realpathSync(__filename)) return candidate;
   } catch {}
 
   console.error(
-    'agent-cu binary not found.\n\n' +
+    'agcu binary not found.\n\n' +
       'Either:\n' +
       '  1. Build from source: cd cli && cargo build --release\n' +
-      '  2. Install via cargo: cargo install --git https://github.com/kortix-ai/agent-computer-use\n',
+      '  2. Install via cargo: cargo install --git https://github.com/elithecho/agcu agcu\n',
   );
   process.exit(1);
 }
@@ -75,9 +77,9 @@ try {
   // Otherwise spawn itself failed (EACCES, ENOENT, ...) and nothing reached
   // the user's terminal — surface the reason instead of silent-exiting.
   if (typeof err.status !== 'number') {
-    console.error(`agent-cu: failed to run ${binary}`);
+    console.error(`agcu: failed to run ${binary}`);
     console.error(`  ${err.code || 'error'}: ${err.message}`);
-    console.error(`  try reinstalling: npm i -g agent-cu@latest`);
+    console.error(`  try reinstalling: npm i -g agcu@latest`);
   }
   process.exit(typeof err.status === 'number' ? err.status : 1);
 }

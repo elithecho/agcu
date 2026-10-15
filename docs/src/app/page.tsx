@@ -8,7 +8,9 @@ export default function Home() {
   return (
     <DocsLayout>
       <div className="mb-8 border-b border-border pb-6">
-        <h1 className="text-3xl md:text-4xl mb-2 font-bold tracking-tight">agent-computer-use</h1>
+        <h1 className="text-3xl md:text-4xl mb-2 font-bold tracking-tight">
+          agcu — Agent Computer Use
+        </h1>
         <p className="mt-2 text-md text-muted-foreground">Computer use CLI for AI Agents.</p>
         <div className="mt-3 flex gap-2">
           <div className="inline-flex items-center rounded-full bg-foreground/10 px-3 py-1 text-xs font-medium text-foreground">
@@ -24,15 +26,15 @@ export default function Home() {
       </div>
 
       <p className="mb-4 text-[15px] leading-relaxed text-muted-foreground">
-        agent-computer-use lets you control desktop apps from the terminal. Click buttons, type into
-        fields, read what&apos;s on screen. All using a single CLI.
+        agcu lets you control desktop apps from the terminal. Click buttons, type into fields, read
+        what&apos;s on screen. All using a single CLI.
       </p>
 
       <p className="mb-4 text-[15px] leading-relaxed text-muted-foreground">
         Built for AI agents. An agent can snapshot the screen, decide what to click, and act while
         you sit back and watch.{' '}
         <a
-          href="https://github.com/kortix-ai/agent-computer-use"
+          href="https://github.com/elithecho/agcu"
           className="text-foreground underline underline-offset-4"
         >
           Star it on GitHub
@@ -40,6 +42,10 @@ export default function Home() {
       </p>
 
       <InstallTabs />
+      <p className="text-sm text-muted-foreground">
+        agcu@0.1.0 is published on npm with the complete CLI binaries. agcu@0.0.1 remains a
+        reservation preview.
+      </p>
 
       <CardGrid>
         <LinkCard
@@ -51,7 +57,7 @@ export default function Home() {
         <LinkCard
           href="/commands"
           title="Commands"
-          description="Everything agent-computer-use can do"
+          description="Everything agcu can do"
           icon={Terminal}
         />
         <LinkCard
@@ -75,7 +81,7 @@ export default function Home() {
         <LinkCard
           href="/ai-mode"
           title="AI Agents"
-          description="How agents use agent-computer-use"
+          description="How agents use agcu"
           icon={Terminal}
         />
       </CardGrid>
@@ -83,14 +89,14 @@ export default function Home() {
       <h2 className="mt-10 mb-4 text-xl font-semibold tracking-tight scroll-mt-20">How it works</h2>
 
       <p className="mb-4 text-[15px] leading-relaxed text-muted-foreground">
-        agent-computer-use reads the accessibility tree — the same structure screen readers use. It
-        sees every button, text field, and menu item in any app. You point, it acts.
+        agcu reads the accessibility tree — the same structure screen readers use. It sees every
+        button, text field, and menu item in any app. You point, it acts.
       </p>
 
       <div className="mt-6 mb-2">
         <Step number={1} title="Snapshot">
           Capture every interactive element. Each gets a ref.
-          <CodeBlock>{`$ agent-cu snapshot -a Calculator -i -c
+          <CodeBlock>{`$ agcu snapshot -a Calculator -i -c
 [@e1] button "All Clear"   [@e5] button "7"
 [@e8] button "Multiply"    [@e11] button "6"
 [@e20] button "Equals"`}</CodeBlock>
@@ -98,14 +104,14 @@ export default function Home() {
 
         <Step number={2} title="Act">
           Use refs to click, type, or read.
-          <CodeBlock>{`$ agent-cu click @e5 && agent-cu click @e8 && agent-cu click @e11 && agent-cu click @e20
-$ agent-cu text -a Calculator
+          <CodeBlock>{`$ agcu click @e5 && agcu click @e8 && agcu click @e11 && agcu click @e20
+$ agcu text -a Calculator
 42`}</CodeBlock>
         </Step>
 
         <Step number={3} title="Re-snapshot">
           UI changed? Snapshot again for fresh refs.
-          <CodeBlock>{`$ agent-cu snapshot -a Calculator -i -c`}</CodeBlock>
+          <CodeBlock>{`$ agcu snapshot -a Calculator -i -c`}</CodeBlock>
         </Step>
       </div>
 

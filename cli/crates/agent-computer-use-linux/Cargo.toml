@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Linux backend for agent-computer-use — uses AT-SPI2 via D-Bus"
+description = "Linux backend for agcu — uses AT-SPI2 via D-Bus"
 
 [dependencies]
 agent-computer-use-core = { workspace = true }

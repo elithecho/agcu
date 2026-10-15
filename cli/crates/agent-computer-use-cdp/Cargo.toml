@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "CDP (Chrome DevTools Protocol) bridge for agent-computer-use — enables interaction with Electron/Chromium apps"
+description = "CDP (Chrome DevTools Protocol) bridge for agcu — enables interaction with Electron/Chromium apps"
 
 [dependencies]
 agent-computer-use-core = { workspace = true }

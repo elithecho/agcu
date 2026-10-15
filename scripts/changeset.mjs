@@ -173,7 +173,7 @@ function generateName() {
 // ── Packages ─────────────────────────────────────────────────────
 
 const packages = [
-  { title: `agent-computer-use ${pc.dim('(the CLI)')}`, value: 'agent-computer-use' },
+  { title: `agcu ${pc.dim('(the CLI)')}`, value: 'agcu' },
   { title: `docs ${pc.dim('(documentation site)')}`, value: 'docs' },
 ];
 
@@ -196,7 +196,7 @@ const bumpTypes = [
 
 async function main() {
   console.log();
-  console.log(pc.bold(pc.cyan('\u{1F4E6} agent-computer-use')) + pc.bold(' \u2014 New Changeset'));
+  console.log(pc.bold(pc.cyan('\u{1F4E6} agcu')) + pc.bold(' \u2014 New Changeset'));
   console.log(pc.dim('\u2500'.repeat(30)));
   console.log();
 

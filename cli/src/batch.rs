@@ -47,7 +47,7 @@ async fn execute_batch_inner(
             continue;
         }
 
-        let mut full_args = vec!["agent-computer-use".to_string()];
+        let mut full_args = vec!["agcu".to_string()];
         full_args.extend(cmd_args.clone());
 
         let parsed = match Cli::try_parse_from(&full_args) {

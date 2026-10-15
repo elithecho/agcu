@@ -18,7 +18,7 @@ body:
       render: bash
       placeholder: |
         # Example usage
-        agent-computer-use new-command --flag value
+        agcu new-command --flag value
     validations:
       required: true
 

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use crate::cli::args::{SetupMode, SetupScope};
 
-const ALLOW_RULE: &str = "Bash(agent-cu *)";
+const ALLOW_RULE: &str = "Bash(agcu *)";
 
 const ACCENT: Color = Color::Rgb {
     r: 180,
@@ -57,14 +57,7 @@ pub fn run(yes: bool, mode: Option<SetupMode>, scope: Option<SetupScope>) -> Res
     apply_allow_rule(&settings_path)
 }
 
-const BANNER: &[&str] = &[
-    r" █████╗  ██████╗ ███████╗███╗   ██╗████████╗     ██████╗██╗   ██╗",
-    r"██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝    ██╔════╝██║   ██║",
-    r"███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║       ██║     ██║   ██║",
-    r"██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║       ██║     ██║   ██║",
-    r"██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║       ╚██████╗╚██████╔╝",
-    r"╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝        ╚═════╝ ╚═════╝ ",
-];
+const BANNER: &[&str] = &["agcu — Agent Computer Use"];
 
 fn print_banner() {
     println!();
@@ -98,10 +91,10 @@ fn short_formatter() -> OptionFormatter<'static, &'static str> {
 
 fn select_mode() -> Result<bool> {
     let options = vec![
-        "Unsupervised — auto-approve all agent-cu commands",
+        "Unsupervised — auto-approve all agcu commands",
         "Supervised — ask approval before each command",
     ];
-    let choice = Select::new("How should agent-cu run in Claude Code?", options)
+    let choice = Select::new("How should agcu run in Claude Code?", options)
         .with_render_config(render_config())
         .with_formatter(short_formatter())
         .with_help_message("↑↓ to navigate · enter to select")
@@ -216,7 +209,7 @@ fn print_summary(path: &Path, already_present: bool) {
         println!(
             "  {}  {}",
             "•".dark_grey(),
-            "Bash(agent-cu *) — already present".dim()
+            "Bash(agcu *) — already present".dim()
         );
         println!("    {}", pretty_path.dark_grey());
         println!();
@@ -229,7 +222,7 @@ fn print_summary(path: &Path, already_present: bool) {
         println!(
             "  {}  {}  {}",
             "✓".with(ACCENT).bold(),
-            "Bash(agent-cu *)".with(ACCENT).bold(),
+            "Bash(agcu *)".with(ACCENT).bold(),
             "added to permissions.allow".dim()
         );
         println!("    {}", pretty_path.dark_grey());
