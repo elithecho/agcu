@@ -42,6 +42,21 @@ fn shell_completions_target_the_public_command() {
     assert!(!script.contains("agent-computer-use"));
 }
 
+#[test]
+fn pid_help_and_invalid_arguments_are_public() {
+    let help = agcu(&["snapshot", "--help"]);
+    assert!(help.status.success());
+    assert!(String::from_utf8(help.stdout).unwrap().contains("--pid"));
+    for args in [
+        vec!["snapshot", "--pid", "0"],
+        vec!["snapshot", "--pid", "2147483648"],
+        vec!["click", "--pid", "42", "--app", "Calculator"],
+    ] {
+        let result = agcu(&args);
+        assert_eq!(result.status.code(), Some(2));
+    }
+}
+
 #[cfg(unix)]
 #[test]
 fn packaged_artifact_still_advertises_agcu_in_usage() {

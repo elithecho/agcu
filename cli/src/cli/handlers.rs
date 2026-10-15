@@ -20,7 +20,8 @@ pub async fn run(
     timeout: Duration,
 ) -> Result<(), RunError> {
     match command {
-        Command::Tree { app, depth } => {
+        Command::Tree { app, pid, depth } => {
+            let app = app_target(app, pid)?;
             let tree = platform.tree(app.as_deref(), depth).await?;
             output.print(&tree);
         }
@@ -28,8 +29,10 @@ pub async fn run(
         Command::Find {
             selector,
             app,
+            pid,
             depth,
         } => {
+            let app = app_target(app, pid)?;
             let mut chain = actions::parse_selector_with_app(&selector, app.as_deref())?;
             if let Some(d) = depth {
                 chain.selectors[0].max_depth = Some(d);
@@ -38,7 +41,8 @@ pub async fn run(
             output.print(&results);
         }
 
-        Command::GetValue { selector, app } => {
+        Command::GetValue { selector, app, pid } => {
+            let app = app_target(app, pid)?;
             let chain = actions::parse_selector_with_app(&selector, app.as_deref())?;
             let node = actions::find_element(platform, &chain, timeout).await?;
             output.print(&node);
@@ -47,12 +51,14 @@ pub async fn run(
         Command::Click {
             selector,
             app,
+            pid,
             x,
             y,
             button,
             count,
             expect,
         } => {
+            let app = app_target(app, pid)?;
             let btn = parse_mouse_button(button.as_deref());
             let cnt = count.unwrap_or(1);
 
@@ -69,7 +75,7 @@ pub async fn run(
                 }
                 platform
                     .perform(&Action::Click {
-                        selector: None,
+                        selector: app.as_ref().map(|app| Selector::new().with_app(app)),
                         coordinates,
                         button: btn,
                         count: cnt,
@@ -77,17 +83,19 @@ pub async fn run(
                     .await?
             };
 
-            output_or_expect(platform, result, expect, timeout, output).await?;
+            output_or_expect(platform, result, expect, app.as_deref(), timeout, output).await?;
         }
 
         Command::Type {
             text,
             selector,
             app,
+            pid,
             submit,
             append,
             expect,
         } => {
+            let app = app_target(app, pid)?;
             let result = if let Some(sel) = selector {
                 let chain = actions::parse_selector_with_app(&sel, app.as_deref())?;
                 actions::type_into(platform, &chain, &text, submit, timeout).await?
@@ -99,7 +107,7 @@ pub async fn run(
                     platform
                         .perform(&Action::KeyPress {
                             key: "cmd+a".into(),
-                            app: None,
+                            app: app.clone(),
                         })
                         .await?;
                     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -109,27 +117,41 @@ pub async fn run(
                         text,
                         selector: None,
                         submit,
+                        app: app.clone(),
                     })
                     .await?
             };
 
-            output_or_expect(platform, result, expect, timeout, output).await?;
+            output_or_expect(platform, result, expect, app.as_deref(), timeout, output).await?;
         }
 
-        Command::Key { key, app, expect } => {
-            let result = platform.perform(&Action::KeyPress { key, app }).await?;
-            output_or_expect(platform, result, expect, timeout, output).await?;
+        Command::Key {
+            key,
+            app,
+            pid,
+            expect,
+        } => {
+            let app = app_target(app, pid)?;
+            let result = platform
+                .perform(&Action::KeyPress {
+                    key,
+                    app: app.clone(),
+                })
+                .await?;
+            output_or_expect(platform, result, expect, app.as_deref(), timeout, output).await?;
         }
 
         Command::Drag {
             from,
             to,
             app,
+            pid,
             from_x,
             from_y,
             to_x,
             to_y,
         } => {
+            let app = app_target(app, pid)?;
             let from_point = if let Some(sel) = from {
                 let chain = actions::parse_selector_with_app(&sel, app.as_deref())?;
                 let node = actions::find_element(platform, &chain, timeout).await?;
@@ -176,12 +198,14 @@ pub async fn run(
                 .perform(&Action::Drag {
                     from: from_point,
                     to: to_point,
+                    app,
                 })
                 .await?;
             output.print(&result);
         }
 
-        Command::ScrollTo { selector, app } => {
+        Command::ScrollTo { selector, app, pid } => {
+            let app = app_target(app, pid)?;
             let chain = actions::parse_selector_with_app(&selector, app.as_deref())?;
             let node = actions::find_element(platform, &chain, timeout).await?;
             let sel = agent_computer_use_core::Selector {
@@ -216,13 +240,15 @@ pub async fn run(
             direction,
             amount,
             app,
+            pid,
             at_selector,
             expect,
         } => {
+            let app = app_target(app, pid)?;
             let dir = actions::parse_direction(&direction)?;
 
             if let Some(at_dsl) = at_selector {
-                let chain = actions::parse_selector(&at_dsl)?;
+                let chain = actions::parse_selector_with_app(&at_dsl, app.as_deref())?;
                 let node = actions::find_element(platform, &chain, timeout).await?;
                 let center =
                     node.center()
@@ -242,10 +268,10 @@ pub async fn run(
                     direction: dir,
                     amount: amount.unwrap_or(3),
                     selector: None,
-                    app,
+                    app: app.clone(),
                 })
                 .await?;
-            output_or_expect(platform, result, expect, timeout, output).await?;
+            output_or_expect(platform, result, expect, app.as_deref(), timeout, output).await?;
         }
 
         Command::WaitFor { selector, interval } => {
@@ -328,19 +354,23 @@ pub async fn run(
 
         Command::Observe {
             app,
+            pid,
             depth,
             refresh,
         } => {
+            let app = app_target(app, pid)?;
             let refresh_interval = Duration::from_secs_f64(refresh);
             observe::run_observe(platform, app, depth, refresh_interval).await?;
         }
 
         Command::Snapshot {
             app,
+            pid,
             depth,
             interactive,
             compact,
         } => {
+            let app = app_target(app, pid)?;
             let tree = platform.tree(app.as_deref(), depth).await?;
             let result = snapshot::create_snapshot(&tree, app.as_deref(), interactive, compact);
             snapshot::save_refs(&result.refs, app.as_deref())?;
@@ -362,7 +392,13 @@ pub async fn run(
             output.print(&results);
         }
 
-        Command::Screenshot { path, app, grid } => {
+        Command::Screenshot {
+            path,
+            app,
+            pid,
+            grid,
+        } => {
+            let app = app_target(app, pid)?;
             let result = platform
                 .perform(&Action::Screenshot {
                     path,
@@ -373,14 +409,16 @@ pub async fn run(
             output.print(&result);
         }
 
-        Command::Windows { app } => {
+        Command::Windows { app, pid } => {
+            let app = app_target(app, pid)?;
             let windows = platform.windows(app.as_deref()).await?;
             output.print(&windows);
         }
 
-        Command::MoveWindow { app, x, y } => {
+        Command::MoveWindow { app, pid, x, y } => {
+            let app = app_target(app, pid)?;
             let app_name = app.ok_or_else(|| agent_computer_use_core::Error::PlatformError {
-                message: "move-window requires --app".into(),
+                message: "move-window requires --app or --pid".into(),
             })?;
             let moved = platform.move_window(&app_name, x, y).await?;
             output.print(&ActionResult {
@@ -395,9 +433,15 @@ pub async fn run(
             });
         }
 
-        Command::ResizeWindow { app, width, height } => {
+        Command::ResizeWindow {
+            app,
+            pid,
+            width,
+            height,
+        } => {
+            let app = app_target(app, pid)?;
             let app_name = app.ok_or_else(|| agent_computer_use_core::Error::PlatformError {
-                message: "resize-window requires --app".into(),
+                message: "resize-window requires --app or --pid".into(),
             })?;
             let resized = platform.resize_window(&app_name, width, height).await?;
             output.print(&ActionResult {
@@ -417,7 +461,8 @@ pub async fn run(
             output.print(&node);
         }
 
-        Command::Text { app } => {
+        Command::Text { app, pid } => {
+            let app = app_target(app, pid)?;
             let text = platform.text(app.as_deref()).await?;
             println!("{text}");
         }
@@ -453,6 +498,18 @@ pub async fn run(
     Ok(())
 }
 
+fn app_target(
+    app: Option<String>,
+    pid: Option<i32>,
+) -> agent_computer_use_core::Result<Option<String>> {
+    if pid.is_some() && !cfg!(target_os = "macos") {
+        return Err(agent_computer_use_core::Error::UnsupportedPlatform {
+            platform: "--pid is currently supported only on macOS".into(),
+        });
+    }
+    Ok(pid.map(|pid| format!("pid:{pid}")).or(app))
+}
+
 fn parse_mouse_button(s: Option<&str>) -> MouseButton {
     match s {
         Some("right") => MouseButton::Right,
@@ -465,12 +522,17 @@ async fn output_or_expect(
     platform: &dyn Platform,
     result: ActionResult,
     expect: Option<String>,
+    app: Option<&str>,
     timeout: Duration,
     output: &Output,
 ) -> Result<(), RunError> {
     match expect {
         Some(expect_dsl) => {
-            let chain = actions::parse_selector(&expect_dsl).map_err(RunError::Core)?;
+            let chain = actions::parse_selector_with_app(
+                &expect_dsl,
+                app.filter(|app| app.starts_with("pid:")),
+            )
+            .map_err(RunError::Core)?;
             match wait::poll_for_element(platform, &chain, timeout, actions::POLL_INTERVAL).await {
                 Ok(element) => {
                     output.print(&ExpectResult {
@@ -497,5 +559,280 @@ async fn output_or_expect(
             output.print(&result);
             Ok(())
         }
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod pid_tests {
+    use super::*;
+    use agent_computer_use_core::platform::{AppInfo, WindowInfo};
+    use agent_computer_use_core::{AccessibilityNode, Result};
+    use async_trait::async_trait;
+    use clap::Parser;
+    use serde_json::{json, Value};
+    use std::sync::Mutex;
+
+    #[derive(Default)]
+    struct RecordingPlatform(Mutex<Vec<Value>>);
+
+    impl RecordingPlatform {
+        fn record(&self, event: Value) {
+            self.0.lock().unwrap().push(event);
+        }
+        fn events(&self) -> Vec<Value> {
+            self.0.lock().unwrap().clone()
+        }
+        fn node() -> AccessibilityNode {
+            serde_json::from_value(json!({
+                "role": "button", "name": "Target", "pid": 42,
+                "position": {"x": 10.0, "y": 20.0},
+                "size": {"width": 40.0, "height": 20.0}
+            }))
+            .unwrap()
+        }
+    }
+
+    #[async_trait]
+    impl Platform for RecordingPlatform {
+        async fn tree(&self, app: Option<&str>, _: Option<u32>) -> Result<AccessibilityNode> {
+            self.record(json!({"tree": app}));
+            Ok(Self::node())
+        }
+        async fn find(&self, selector: &Selector) -> Result<Vec<AccessibilityNode>> {
+            self.record(json!({"find": selector}));
+            Ok(vec![Self::node()])
+        }
+        async fn perform(&self, action: &Action) -> Result<ActionResult> {
+            self.record(serde_json::to_value(action).unwrap());
+            Ok(ActionResult {
+                success: true,
+                message: Some("fixture action".into()),
+                path: None,
+                data: None,
+            })
+        }
+        async fn activate(&self, app: &str) -> Result<()> {
+            self.record(json!({"activate": app}));
+            Ok(())
+        }
+        async fn focused(&self) -> Result<AccessibilityNode> {
+            Ok(Self::node())
+        }
+        async fn applications(&self) -> Result<Vec<AppInfo>> {
+            Ok(vec![])
+        }
+        async fn windows(&self, app: Option<&str>) -> Result<Vec<WindowInfo>> {
+            self.record(json!({"windows": app}));
+            Ok(vec![])
+        }
+        async fn text(&self, app: Option<&str>) -> Result<String> {
+            self.record(json!({"text": app}));
+            Ok("fixture".into())
+        }
+        async fn check_permissions(&self) -> Result<bool> {
+            Ok(true)
+        }
+        fn platform_name(&self) -> &'static str {
+            "fixture"
+        }
+    }
+
+    async fn dispatch(args: &[&str], platform: &dyn Platform) {
+        let command = Cli::try_parse_from(args).unwrap().command;
+        assert!(
+            run(command, platform, &Output::new(false, true), Duration::ZERO)
+                .await
+                .is_ok()
+        );
+    }
+
+    #[tokio::test]
+    async fn explicit_and_fallback_clicks_preserve_the_target() {
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &["agcu", "click", "--pid", "42", "--x", "30", "--y", "30"],
+            &platform,
+        )
+        .await;
+        assert_eq!(
+            platform.events(),
+            vec![
+                json!({"activate": "pid:42"}),
+                json!({"type":"click", "selector":{"app":"pid:42"}, "coordinates":{"x":30.0,"y":30.0}, "button":"left", "count":1})
+            ]
+        );
+        for target in [Some("pid:42"), Some("Calculator"), None] {
+            let platform = RecordingPlatform::default();
+            let chain = actions::parse_selector_with_app("role=button", target).unwrap();
+            let result = actions::click(&platform, &chain, MouseButton::Left, 1, Duration::ZERO)
+                .await
+                .unwrap();
+            assert_eq!(result.message.as_deref(), Some("fixture action"));
+            let mut expected = json!({
+                "type":"click", "coordinates":{"x":30.0,"y":30.0}, "button":"left", "count":1
+            });
+            if let Some(app) = target {
+                expected["selector"] = json!({"app":app});
+            }
+            assert_eq!(platform.events().last().unwrap(), &expected);
+        }
+    }
+
+    #[tokio::test]
+    async fn typing_and_drag_keep_pid_on_input_actions() {
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &["agcu", "type", "hello", "--pid", "42", "--submit"],
+            &platform,
+        )
+        .await;
+        assert_eq!(
+            platform.events(),
+            vec![
+                json!({"activate":"pid:42"}),
+                json!({"type":"key_press", "key":"cmd+a", "app":"pid:42"}),
+                json!({"type":"type", "text":"hello", "app":"pid:42", "submit":true})
+            ]
+        );
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &["agcu", "type", "hello", "--pid", "42", "-s", "role=button"],
+            &platform,
+        )
+        .await;
+        let events = platform.events();
+        assert_eq!(
+            events.last().unwrap(),
+            &json!({"type":"type", "text":"hello", "app":"pid:42", "submit":false})
+        );
+        for action in events.iter().filter(|event| event.get("type").is_some()) {
+            let target = action
+                .get("app")
+                .or_else(|| action.get("selector").and_then(|s| s.get("app")));
+            assert_eq!(target, Some(&json!("pid:42")), "{action}");
+        }
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &[
+                "agcu", "drag", "--pid", "42", "--from-x", "1", "--from-y", "2", "--to-x", "3",
+                "--to-y", "4",
+            ],
+            &platform,
+        )
+        .await;
+        assert_eq!(
+            platform.events().last().unwrap(),
+            &json!({"type":"drag", "from":{"x":1.0,"y":2.0}, "to":{"x":3.0,"y":4.0}, "app":"pid:42"})
+        );
+    }
+
+    #[tokio::test]
+    async fn pid_discovery_and_scroll_at_are_scoped() {
+        for (command, event) in [("tree", "tree"), ("windows", "windows"), ("text", "text")] {
+            let platform = RecordingPlatform::default();
+            dispatch(&["agcu", command, "--pid", "42"], &platform).await;
+            assert_eq!(platform.events(), vec![json!({event:"pid:42"})]);
+        }
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &[
+                "agcu",
+                "scroll",
+                "down",
+                "--at-selector",
+                "role=button",
+                "--pid",
+                "42",
+            ],
+            &platform,
+        )
+        .await;
+        let events = platform.events();
+        assert_eq!(events[0], json!({"find":{"app":"pid:42", "role":"button"}}));
+        assert_eq!(
+            events.last().unwrap(),
+            &json!({"type":"scroll", "direction":"down", "amount":3, "app":"pid:42"})
+        );
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &[
+                "agcu",
+                "screenshot",
+                "--pid",
+                "42",
+                "--grid",
+                "--path",
+                "fixture.png",
+            ],
+            &platform,
+        )
+        .await;
+        assert_eq!(
+            platform.events(),
+            vec![json!({"type":"screenshot", "app":"pid:42", "path":"fixture.png", "grid":true})]
+        );
+    }
+
+    #[test]
+    fn conflicting_selector_targets_are_rejected_but_names_keep_existing_precedence() {
+        let error =
+            actions::parse_selector_with_app("app=Other role=button", Some("pid:42")).unwrap_err();
+        assert!(error.to_string().contains("conflicts with --pid"));
+        let chain =
+            actions::parse_selector_with_app("app=Other role=button", Some("Calculator")).unwrap();
+        assert_eq!(chain.first().app.as_deref(), Some("Other"));
+        let chain = actions::parse_selector_with_app("role=button", Some("pid:42")).unwrap();
+        assert_eq!(chain.first().app.as_deref(), Some("pid:42"));
+    }
+
+    #[tokio::test]
+    async fn pid_targets_bypass_forced_cdp_before_network_access() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let platform = agent_computer_use_cdp::ElectronAwarePlatform::new(
+            RecordingPlatform::default(),
+            agent_computer_use_cdp::CdpConfig {
+                force: true,
+                port: Some(listener.local_addr().unwrap().port()),
+                disabled: false,
+            },
+        );
+        let tree = tokio::time::timeout(
+            Duration::from_millis(500),
+            platform.tree(Some("pid:42"), None),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!((tree.pid, tree.name.as_deref()), (Some(42), Some("Target")));
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+    }
+
+    #[tokio::test]
+    async fn pid_expect_verifies_only_the_target_process() {
+        let platform = RecordingPlatform::default();
+        dispatch(
+            &[
+                "agcu",
+                "key",
+                "Return",
+                "--pid",
+                "42",
+                "--expect",
+                "role=button",
+            ],
+            &platform,
+        )
+        .await;
+        assert_eq!(
+            platform.events(),
+            vec![
+                json!({"type":"key_press", "key":"Return", "app":"pid:42"}),
+                json!({"find":{"app":"pid:42", "role":"button"}}),
+            ]
+        );
     }
 }

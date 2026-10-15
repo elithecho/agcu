@@ -43,6 +43,13 @@ fn post_event(event: &CGEvent, target_pid: Option<i32>) {
     }
 }
 
+fn post_keyboard_event(event: &CGEvent, target_pid: Option<i32>) {
+    match target_pid {
+        Some(pid) => event.post_to_pid(pid),
+        None => post_event_global(event),
+    }
+}
+
 pub fn stealth_activate<F, R>(app_name: &str, f: F) -> Result<R>
 where
     F: FnOnce() -> Result<R>,
@@ -258,6 +265,10 @@ pub fn type_text(text: &str) -> Result<()> {
     type_text_impl(text, None)
 }
 
+pub fn type_text_to_pid(text: &str, pid: i32) -> Result<()> {
+    type_text_impl(text, Some(pid))
+}
+
 fn type_text_impl(text: &str, target_pid: Option<i32>) -> Result<()> {
     let source = CGEventSource::new(CGEventSourceStateID::HIDSystemState).map_err(|_| {
         Error::PlatformError {
@@ -281,9 +292,13 @@ fn type_text_impl(text: &str, target_pid: Option<i32>) -> Result<()> {
         let chars = [ch as u16];
         key_down.set_string_from_utf16_unchecked(&chars);
         key_up.set_string_from_utf16_unchecked(&chars);
+        if target_pid.is_some() {
+            key_down.set_flags(core_graphics::event::CGEventFlags::empty());
+            key_up.set_flags(core_graphics::event::CGEventFlags::empty());
+        }
 
-        post_event(&key_down, target_pid);
-        post_event(&key_up, target_pid);
+        post_keyboard_event(&key_down, target_pid);
+        post_keyboard_event(&key_up, target_pid);
 
         std::thread::sleep(std::time::Duration::from_millis(15));
     }
@@ -350,8 +365,8 @@ fn key_press_impl(key_expr: &str, target_pid: Option<i32>) -> Result<()> {
     key_down.set_flags(flags);
     key_up.set_flags(flags);
 
-    post_event(&key_down, target_pid);
-    post_event(&key_up, target_pid);
+    post_keyboard_event(&key_down, target_pid);
+    post_keyboard_event(&key_up, target_pid);
 
     Ok(())
 }
