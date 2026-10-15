@@ -37,11 +37,10 @@ The repository includes a skill for Claude Code, Cursor, Codex and other support
 
 ## Installation
 
-### npm (after publication)
+### npm
 
-`agcu@0.0.1` is a reservation preview, not the complete CLI. The proper `0.1.0`
-release is being prepared; until it is published, build from source below.
-After publication:
+`agcu@0.1.0` is published on npm with the complete CLI binaries.
+`agcu@0.0.1` remains a reservation preview, not the complete CLI.
 
 ```bash
 npm install -g agcu@0.1.0       # npm

@@ -1,7 +1,7 @@
 [
   {
     "title": "Quick Start",
-    "content": "Quick Start Install and try it in 2 minutes agcu — Agent Computer Use Computer use CLI for AI Agents. Windows agcu lets you control desktop apps from the terminal. Click buttons, type into fields, read\n        what&apos;s on screen. All using a single CLI. Star it on GitHub agcu@0.0.1 is a reservation preview. The proper 0.1.0 CLI release is being prepared; until\n        it is published, use the source installation instructions. How it works agcu reads the accessibility tree — the same structure screen readers use. It sees every\n        button, text field, and menu item in any app. You point, it acts. Capture every interactive element. Each gets a ref. Use refs to click, type, or read. UI changed? Snapshot again for fresh refs. What can you do with it? Anything you&apos;d do by clicking around:",
+    "content": "Quick Start Install and try it in 2 minutes agcu — Agent Computer Use Computer use CLI for AI Agents. Windows agcu lets you control desktop apps from the terminal. Click buttons, type into fields, read\n        what&apos;s on screen. All using a single CLI. Star it on GitHub agcu@0.1.0 is published on npm with the complete CLI binaries. agcu@0.0.1 remains a\n        reservation preview. How it works agcu reads the accessibility tree — the same structure screen readers use. It sees every\n        button, text field, and menu item in any app. You point, it acts. Capture every interactive element. Each gets a ref. Use refs to click, type, or read. UI changed? Snapshot again for fresh refs. What can you do with it? Anything you&apos;d do by clicking around:",
     "href": "/",
     "pageTitle": "Quick Start"
   },
@@ -26,12 +26,12 @@
   {
     "title": "Local installation (recommended)",
     "content": "Install Rust from rustup.rs first: Cargo installs agcu to ~/.cargo/bin; ensure that directory is on PATH. The optional ./scripts/setup.sh development helper checks Rust/Node, installs JS dependencies and builds ./cli/target/release/agcu. It does not install the binary on PATH or grant permissions.",
-    "href": "/installation#npm-after-publication",
+    "href": "/installation#npm",
     "pageTitle": "Installation"
   },
   {
-    "title": "npm (after publication)",
-    "content": "agcu@0.0.1 is a reservation preview, not the complete CLI. The proper 0.1.0 release is being prepared. Until it is published, use the source installation above. After publication: The bundle contains macOS arm64/x64, Linux arm64/x64 and Windows x64 executables. Linux binaries use GNU libc and dynamically link OpenSSL 3, not Alpine/musl. Debian 12 container startup checks do not verify desktop accessibility or input delivery on Linux or Windows.",
+    "title": "npm",
+    "content": "agcu@0.1.0 is published on npm with the complete CLI binaries. agcu@0.0.1 remains a reservation preview, not the complete CLI. The bundle contains macOS arm64/x64, Linux arm64/x64 and Windows x64 executables. Linux binaries use GNU libc and dynamically link OpenSSL 3, not Alpine/musl. Debian 12 container startup checks do not verify desktop accessibility or input delivery on Linux or Windows.",
     "href": "/installation#cargo",
     "pageTitle": "Installation"
   },

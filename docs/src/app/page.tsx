@@ -43,8 +43,8 @@ export default function Home() {
 
       <InstallTabs />
       <p className="text-sm text-muted-foreground">
-        agcu@0.0.1 is a reservation preview. The proper 0.1.0 CLI release is being prepared; until
-        it is published, use the source installation instructions.
+        agcu@0.1.0 is published on npm with the complete CLI binaries. agcu@0.0.1 remains a
+        reservation preview.
       </p>
 
       <CardGrid>
