@@ -80,6 +80,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process instead of an app name (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Max tree depth to traverse
         #[arg(short, long)]
         depth: Option<u32>,
@@ -100,6 +103,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Max tree depth to search
         #[arg(short, long)]
         depth: Option<u32>,
@@ -122,6 +128,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Click at X coordinate
         #[arg(long)]
         x: Option<f64>,
@@ -158,6 +167,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Press Return/Enter after typing
         #[arg(long)]
         submit: bool,
@@ -182,6 +194,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Verify this element appears after key press
         #[arg(long)]
         expect: Option<String>,
@@ -199,6 +214,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
     },
 
     /// Scroll within an app
@@ -217,6 +235,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Position mouse at this element before scrolling
         #[arg(long, name = "at")]
         at_selector: Option<String>,
@@ -234,6 +255,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Source X coordinate (if not using selector)
         #[arg(long)]
         from_x: Option<f64>,
@@ -293,6 +317,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
     },
 
     /// Launch an application
@@ -337,6 +364,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Max tree depth [default: 10]
         #[arg(short, long, default_value = "10")]
         depth: u32,
@@ -359,6 +389,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Max tree depth
         #[arg(short, long)]
         depth: Option<u32>,
@@ -396,8 +429,11 @@ pub enum Command {
         /// Capture only this app's window
         #[arg(short, long)]
         app: Option<String>,
+        /// Capture only this process's window (macOS)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Overlay absolute click coordinates every 100 screen points (macOS only).
-        /// Without --app, capture only the main display.
+        /// Without --app/--pid, capture only the main display.
         #[arg(long)]
         grid: bool,
     },
@@ -407,6 +443,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
     },
 
     /// Move an app's window to a position
@@ -415,6 +454,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// X position
         #[arg(long)]
         x: f64,
@@ -429,6 +471,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
         /// Width
         #[arg(long)]
         width: f64,
@@ -447,6 +492,9 @@ pub enum Command {
         /// Target application name
         #[arg(short, long)]
         app: Option<String>,
+        /// Target a running process (macOS, native accessibility)
+        #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
+        pid: Option<i32>,
     },
 
     /// List running applications
@@ -505,6 +553,46 @@ mod tests {
     use super::*;
 
     #[test]
+    fn pid_options_reject_invalid_ids_and_app_conflicts() {
+        let commands = [
+            vec!["tree"],
+            vec!["find", "role=button"],
+            vec!["click", "role=button"],
+            vec!["type", "hello"],
+            vec!["key", "Return"],
+            vec!["scroll-to", "role=button"],
+            vec!["scroll", "down"],
+            vec![
+                "drag", "--from-x", "1", "--from-y", "2", "--to-x", "3", "--to-y", "4",
+            ],
+            vec!["get-value", "role=button"],
+            vec!["observe"],
+            vec!["snapshot"],
+            vec!["screenshot", "--grid"],
+            vec!["windows"],
+            vec!["move-window", "--x", "1", "--y", "2"],
+            vec!["resize-window", "--width", "100", "--height", "100"],
+            vec!["text"],
+        ];
+        for command in commands {
+            let mut args = vec!["agcu"];
+            args.extend(command);
+            args.extend(["--pid", "42"]);
+            assert!(Cli::try_parse_from(&args).is_ok(), "{args:?}");
+            for invalid in ["0", "-1", "2147483648", "not-a-pid"] {
+                *args.last_mut().unwrap() = invalid;
+                assert!(Cli::try_parse_from(&args).is_err(), "{args:?}");
+            }
+            *args.last_mut().unwrap() = "42";
+            args.extend(["--app", "Calculator"]);
+            let error = Cli::try_parse_from(&args)
+                .err()
+                .expect("--app conflicts with --pid");
+            assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+        }
+    }
+
+    #[test]
     fn screenshot_options_and_plain_default() {
         let cli = Cli::try_parse_from([
             "agcu",
@@ -517,7 +605,9 @@ mod tests {
         ])
         .unwrap();
         match cli.command {
-            Command::Screenshot { app, path, grid } => {
+            Command::Screenshot {
+                app, path, grid, ..
+            } => {
                 assert_eq!(app.as_deref(), Some("App"));
                 assert_eq!(path.as_deref(), Some("shot.png"));
                 assert!(grid);
@@ -530,7 +620,9 @@ mod tests {
         ] {
             let cli = Cli::try_parse_from(&args).unwrap();
             match cli.command {
-                Command::Screenshot { app, path, grid } => {
+                Command::Screenshot {
+                    app, path, grid, ..
+                } => {
                     assert_eq!(app, None);
                     assert_eq!(path, None);
                     assert_eq!(grid, args.len() == 3);

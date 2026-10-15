@@ -21,6 +21,9 @@ pub enum Action {
 
     Type {
         text: String,
+        /// Application target for keyboard fallback when no element is selected.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        app: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         selector: Option<Selector>,
 
@@ -54,6 +57,8 @@ pub enum Action {
     Drag {
         from: Point,
         to: Point,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        app: Option<String>,
     },
 
     Focus {
@@ -114,6 +119,26 @@ pub struct ActionResult {
 
 fn default_click_count() -> u32 {
     1
+}
+
+#[cfg(test)]
+mod pid_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn optional_targets_preserve_old_action_json() {
+        for legacy in [
+            json!({"type":"type", "text":"hello", "submit":false}),
+            json!({"type":"drag", "from":{"x":1.0,"y":2.0}, "to":{"x":3.0,"y":4.0}}),
+        ] {
+            let action: Action = serde_json::from_value(legacy.clone()).unwrap();
+            assert_eq!(serde_json::to_value(action).unwrap(), legacy);
+        }
+        let targeted = json!({"type":"type", "text":"hello", "app":"pid:42", "submit":true});
+        let action: Action = serde_json::from_value(targeted.clone()).unwrap();
+        assert_eq!(serde_json::to_value(action).unwrap(), targeted);
+    }
 }
 
 fn default_scroll_amount() -> u32 {

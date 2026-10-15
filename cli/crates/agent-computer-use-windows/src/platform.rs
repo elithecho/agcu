@@ -227,6 +227,7 @@ mod real {
                     text,
                     selector,
                     submit,
+                    ..
                 } => {
                     if let Some(sel) = selector {
                         let root = self.get_app_root(sel.app.as_deref())?;
@@ -375,7 +376,7 @@ mod real {
                     })
                 }
 
-                Action::Drag { from, to } => {
+                Action::Drag { from, to, .. } => {
                     unsafe {
                         let pt = POINT {
                             x: from.x as i32,

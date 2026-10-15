@@ -142,6 +142,38 @@ agcu text -a Music                     # read all visible text
 
 The workflow: **snapshot → identify refs → act → re-snapshot to verify**.
 
+### Target one process (macOS)
+
+When multiple running app instances share a name, use the PID reported by `agcu apps`
+or `agcu windows` instead of `--app`:
+
+```bash
+agcu apps
+agcu snapshot --pid 12345 -i -c
+agcu click @e5                         # refs retain the snapshot's PID
+agcu type "hello" --pid 12345
+agcu windows --pid 12345
+agcu screenshot --pid 12345 --grid --path /absolute/path/shot.png
+```
+
+`--pid` is mutually exclusive with `--app` and requires a positive, running macOS
+GUI process ID. It uses native accessibility even with `--cdp`/`--cdp-port`: a CDP
+port does not establish which OS process owns the page. It does not relaunch apps.
+Invalid or no-longer-running targets fail rather than falling back to another app.
+Refs from another app/PID are rejected when combined with `--pid`; take a fresh
+snapshot after the app restarts. PIDs identify processes, not individual windows
+within one process; use window selectors for those.
+
+Supported on tree, find, get-value, snapshot, observe, text, click, type, key,
+scroll, scroll-to, drag, windows, move-window, resize-window, and screenshot.
+Workflow-file `run --pid` and non-macOS PID targeting are not supported.
+Coordinate/keyboard fallback can bring the target app forward and uses existing
+Accessibility and System Events Automation permissions; no permissions are granted
+automatically.
+
+Reproduce process isolation with two disposable same-name Cocoa fixtures:
+`python3 scripts/smoke-pid-targeting.py` (after `cd cli && cargo build -p agcu`).
+
 ## Commands
 
 ### Discovery

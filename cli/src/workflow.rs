@@ -179,6 +179,7 @@ async fn execute_step(
                 let result = platform
                     .perform(&Action::Type {
                         text: text.clone(),
+                        app: None,
                         selector: None,
                         submit: false,
                     })

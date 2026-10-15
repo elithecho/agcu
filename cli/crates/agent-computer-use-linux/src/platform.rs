@@ -143,6 +143,7 @@ mod real {
                     text,
                     selector,
                     submit,
+                    ..
                 } => {
                     if let Some(sel) = selector {
                         let node = self.find_one(sel).await?;
@@ -210,7 +211,7 @@ mod real {
                     })
                 }
 
-                Action::Drag { from, to } => {
+                Action::Drag { from, to, .. } => {
                     input::drag(*from, *to)?;
                     Ok(ActionResult {
                         success: true,

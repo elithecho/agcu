@@ -37,7 +37,7 @@ impl<P: Platform> ElectronAwarePlatform<P> {
     }
 
     async fn get_connection(&self, app: &str) -> Option<std::sync::Arc<CdpConnection>> {
-        if self.config.disabled {
+        if self.config.disabled || app.starts_with("pid:") {
             return None;
         }
 
@@ -229,9 +229,14 @@ impl<P: Platform> Platform for ElectronAwarePlatform<P> {
             text,
             selector: None,
             submit,
+            app,
         } = action
         {
-            if let Some(conn) = self.any_connection() {
+            let conn = match app {
+                Some(app) => self.get_connection(app).await,
+                None => self.any_connection(),
+            };
+            if let Some(conn) = conn {
                 dom::insert_text(&conn, text).await?;
                 if *submit {
                     dom::dispatch_key(&conn, "Return").await?;

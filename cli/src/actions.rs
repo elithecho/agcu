@@ -40,6 +40,16 @@ pub fn parse_selector_with_app(
 ) -> Result<SelectorChain, agent_computer_use_core::Error> {
     let mut chain = parse_selector(dsl)?;
     if let Some(a) = app {
+        if a.starts_with("pid:")
+            && chain
+                .selectors
+                .iter()
+                .any(|s| s.app.as_deref().is_some_and(|target| target != a))
+        {
+            return Err(agent_computer_use_core::Error::PlatformError {
+                message: format!("selector/ref app conflicts with --pid target {a}; take a fresh snapshot with --pid"),
+            });
+        }
         if chain.selectors[0].app.is_none() {
             chain.selectors[0].app = Some(a.to_string());
         }
@@ -181,7 +191,11 @@ pub async fn click(
     }
     platform
         .perform(&Action::Click {
-            selector: None,
+            selector: chain
+                .first()
+                .app
+                .as_ref()
+                .map(|app| Selector::new().with_app(app)),
             coordinates: Some(center),
             button,
             count,
@@ -313,7 +327,11 @@ pub async fn type_into(
     if let Some(center) = node.center() {
         platform
             .perform(&Action::Click {
-                selector: None,
+                selector: chain
+                    .first()
+                    .app
+                    .as_ref()
+                    .map(|app| Selector::new().with_app(app)),
                 coordinates: Some(center),
                 button: MouseButton::Left,
                 count: 1,
@@ -325,7 +343,7 @@ pub async fn type_into(
     platform
         .perform(&Action::KeyPress {
             key: "cmd+a".into(),
-            app: None,
+            app: chain.first().app.clone(),
         })
         .await?;
     tokio::time::sleep(Duration::from_millis(50)).await;
@@ -333,7 +351,7 @@ pub async fn type_into(
     platform
         .perform(&Action::KeyPress {
             key: "backspace".into(),
-            app: None,
+            app: chain.first().app.clone(),
         })
         .await?;
     tokio::time::sleep(TYPE_STEP_DELAY).await;
@@ -341,6 +359,7 @@ pub async fn type_into(
     platform
         .perform(&Action::Type {
             text: text.to_string(),
+            app: chain.first().app.clone(),
             selector: None,
             submit,
         })

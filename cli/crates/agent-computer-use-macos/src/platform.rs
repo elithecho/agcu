@@ -38,11 +38,15 @@ impl MacOSPlatform {
 
         ax::raise_window(pid);
 
+        let script = if parse_pid_target(app_name)?.is_some() {
+            format!(
+                r#"tell application "System Events" to set frontmost of first application process whose unix id is {pid} to true"#
+            )
+        } else {
+            format!(r#"tell application "{app_name}" to activate"#)
+        };
         let output = std::process::Command::new("osascript")
-            .args([
-                "-e",
-                &format!(r#"tell application "{app_name}" to activate"#),
-            ])
+            .args(["-e", &script])
             .output()
             .map_err(|e| Error::PlatformError {
                 message: format!("failed to activate {app_name}: {e}"),
@@ -60,6 +64,9 @@ impl MacOSPlatform {
     }
 
     fn find_app_pid(&self, app_name: &str) -> Result<i32> {
+        if parse_pid_target(app_name)?.is_some() {
+            return self.find_app_pids(app_name).map(|apps| apps[0].0);
+        }
         let lower = app_name.to_lowercase();
 
         {
@@ -96,6 +103,16 @@ impl MacOSPlatform {
     }
 
     fn find_app_pids(&self, app_name: &str) -> Result<Vec<(i32, String)>> {
+        if let Some(pid) = parse_pid_target(app_name)? {
+            return self
+                .running_apps()
+                .into_iter()
+                .find(|(app_pid, _)| *app_pid == pid)
+                .map(|app| vec![app])
+                .ok_or_else(|| Error::ApplicationNotFound {
+                    name: app_name.to_string(),
+                });
+        }
         let lower = app_name.to_lowercase();
         let apps = self.running_apps();
         let mut matches: Vec<(i32, String)> = apps
@@ -120,6 +137,20 @@ impl MacOSPlatform {
 
         Ok(matches)
     }
+}
+
+fn parse_pid_target(app_name: &str) -> Result<Option<i32>> {
+    let Some(value) = app_name.strip_prefix("pid:") else {
+        return Ok(None);
+    };
+    value
+        .parse::<i32>()
+        .ok()
+        .filter(|pid| *pid > 0)
+        .map(Some)
+        .ok_or_else(|| Error::PlatformError {
+            message: format!("invalid process target: {app_name}"),
+        })
 }
 
 impl MacOSPlatform {
@@ -308,6 +339,7 @@ impl Platform for MacOSPlatform {
                 text,
                 selector,
                 submit,
+                app,
             } => {
                 if let Some(sel) = selector {
                     let root = match &sel.app {
@@ -344,11 +376,22 @@ impl Platform for MacOSPlatform {
                         input::key_press("return")?;
                     }
                 } else {
-                    input::type_text(text)?;
-
+                    let pid = match app.as_deref() {
+                        Some(target) if parse_pid_target(target)?.is_some() => {
+                            Some(self.find_app_pid(target)?)
+                        }
+                        _ => None,
+                    };
+                    match pid {
+                        Some(pid) => input::type_text_to_pid(text, pid)?,
+                        None => input::type_text(text)?,
+                    }
                     if *submit {
                         std::thread::sleep(std::time::Duration::from_millis(100));
-                        input::key_press("return")?;
+                        match pid {
+                            Some(pid) => input::key_press_to_pid("return", pid)?,
+                            None => input::key_press("return")?,
+                        }
                     }
                 }
 
@@ -369,7 +412,13 @@ impl Platform for MacOSPlatform {
             Action::KeyPress { key, app } => {
                 match app {
                     Some(name) => {
-                        input::stealth_activate(name, || input::key_press(key))?;
+                        if parse_pid_target(name)?.is_some() {
+                            let pid = self.find_app_pid(name)?;
+                            self.activate_app(name)?;
+                            input::key_press_to_pid(key, pid)?;
+                        } else {
+                            input::stealth_activate(name, || input::key_press(key))?;
+                        }
                     }
                     None => {
                         input::key_press(key)?;
@@ -456,8 +505,12 @@ impl Platform for MacOSPlatform {
                 })
             }
 
-            Action::Drag { from, to } => {
-                input::drag(*from, *to, None)?;
+            Action::Drag { from, to, app } => {
+                let pid = app
+                    .as_deref()
+                    .map(|app| self.find_app_pid(app))
+                    .transpose()?;
+                input::drag(*from, *to, pid)?;
                 Ok(ActionResult {
                     success: true,
                     message: Some(format!(
@@ -1278,6 +1331,36 @@ fn running_apps_native() -> Vec<(i32, String)> {
     }
 
     result
+}
+
+#[cfg(test)]
+mod pid_tests {
+    use super::*;
+
+    #[test]
+    fn process_targets_are_validated_without_name_fallback() {
+        assert_eq!(parse_pid_target("pid:42").unwrap(), Some(42));
+        assert_eq!(parse_pid_target("Calculator").unwrap(), None);
+        for invalid in [
+            "pid:",
+            "pid:0",
+            "pid:-1",
+            "pid:2147483648",
+            "pid:Calculator",
+        ] {
+            assert!(matches!(
+                parse_pid_target(invalid),
+                Err(Error::PlatformError { .. })
+            ));
+        }
+        let platform = MacOSPlatform::new();
+        assert!(
+            matches!(platform.find_app_pid("pid:2147483647"), Err(Error::ApplicationNotFound { name }) if name == "pid:2147483647")
+        );
+        assert!(
+            matches!(platform.find_app_pids("pid:2147483647"), Err(Error::ApplicationNotFound { name }) if name == "pid:2147483647")
+        );
+    }
 }
 
 #[cfg(test)]

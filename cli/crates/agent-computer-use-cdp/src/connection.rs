@@ -269,3 +269,110 @@ fn save_ws_url_cache(port: u16, url: &str) {
     let cache = serde_json::json!({ "url": url, "ts": now });
     let _ = std::fs::write(&path, serde_json::to_string(&cache).unwrap_or_default());
 }
+
+#[cfg(test)]
+mod pid_tests {
+    use super::*;
+    use crate::{CdpConfig, ElectronAwarePlatform};
+    use agent_computer_use_core::action::{Action, ActionResult};
+    use agent_computer_use_core::platform::{AppInfo, WindowInfo};
+    use agent_computer_use_core::{AccessibilityNode, Platform, Result, Selector};
+    use async_trait::async_trait;
+    use serde_json::json;
+    use std::sync::{atomic::AtomicUsize, Arc};
+
+    struct Native;
+
+    #[async_trait]
+    impl Platform for Native {
+        async fn tree(&self, _: Option<&str>, _: Option<u32>) -> Result<AccessibilityNode> {
+            unreachable!()
+        }
+        async fn find(&self, _: &Selector) -> Result<Vec<AccessibilityNode>> {
+            unreachable!()
+        }
+        async fn perform(&self, action: &Action) -> Result<ActionResult> {
+            assert_eq!(
+                serde_json::to_value(action).unwrap(),
+                json!({"type":"type", "text":"hello", "app":"pid:42", "submit":false})
+            );
+            Ok(ActionResult {
+                success: true,
+                message: Some("native PID typing".into()),
+                path: None,
+                data: None,
+            })
+        }
+        async fn focused(&self) -> Result<AccessibilityNode> {
+            unreachable!()
+        }
+        async fn applications(&self) -> Result<Vec<AppInfo>> {
+            unreachable!()
+        }
+        async fn windows(&self, _: Option<&str>) -> Result<Vec<WindowInfo>> {
+            unreachable!()
+        }
+        async fn text(&self, _: Option<&str>) -> Result<String> {
+            unreachable!()
+        }
+        async fn check_permissions(&self) -> Result<bool> {
+            unreachable!()
+        }
+        fn platform_name(&self) -> &'static str {
+            "fixture"
+        }
+    }
+
+    #[tokio::test]
+    async fn pid_typing_does_not_reuse_another_apps_cached_connection() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let requests = Arc::new(AtomicUsize::new(0));
+        let seen = requests.clone();
+        let server = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut ws = tokio_tungstenite::accept_async(socket).await.unwrap();
+            while let Some(Ok(Message::Text(message))) = ws.next().await {
+                let request: serde_json::Value = serde_json::from_str(&message).unwrap();
+                assert_eq!(request["method"], "Input.insertText");
+                assert_eq!(request["params"], json!({"text":"hello"}));
+                seen.fetch_add(1, Ordering::SeqCst);
+                ws.send(Message::Text(
+                    json!({"id":request["id"], "result":{}}).to_string(),
+                ))
+                .await
+                .unwrap();
+            }
+        });
+        let connection = CdpConnection::connect_ws(&format!("ws://127.0.0.1:{port}"), port)
+            .await
+            .unwrap();
+        let platform = ElectronAwarePlatform::new(Native, CdpConfig::default());
+        platform
+            .connections
+            .lock()
+            .unwrap()
+            .insert("Other app".into(), Arc::new(connection));
+        let action = Action::Type {
+            text: "hello".into(),
+            app: None,
+            selector: None,
+            submit: false,
+        };
+        let legacy = platform.perform(&action).await.unwrap();
+        assert_eq!(
+            legacy.message.as_deref(),
+            Some("typed 5 characters via CDP")
+        );
+        let targeted = Action::Type {
+            text: "hello".into(),
+            app: Some("pid:42".into()),
+            selector: None,
+            submit: false,
+        };
+        let result = platform.perform(&targeted).await.unwrap();
+        assert_eq!(result.message.as_deref(), Some("native PID typing"));
+        assert_eq!(requests.load(Ordering::SeqCst), 1);
+        server.abort();
+    }
+}
