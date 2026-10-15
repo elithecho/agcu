@@ -2,6 +2,7 @@
 pub mod input;
 #[cfg(target_os = "windows")]
 mod platform;
+pub mod screenshot;
 #[cfg(target_os = "windows")]
 mod uia;
 

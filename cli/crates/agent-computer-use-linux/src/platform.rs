@@ -240,7 +240,7 @@ mod real {
                 Action::Screenshot { path, app, grid } => {
                     if *grid {
                         return Err(Error::ActionNotSupported {
-                            message: "screenshot --grid is currently supported on macOS only; omit --grid for a plain screenshot".into(),
+                            message: "screenshot --grid is currently supported on macOS and Windows; omit --grid for a plain screenshot".into(),
                         });
                     }
                     let save_path = path.clone().unwrap_or_else(|| {

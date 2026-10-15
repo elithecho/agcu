@@ -249,15 +249,18 @@ agcu resize-window -a Notes --width 800 --height 600  # resize (instant)
 agcu open Calculator --wait                   # launch and wait for ready
 agcu screenshot -a Music --path shot.png      # screenshot an app
 agcu screenshot --path full.png               # full screen
-agcu screenshot -a Music --path grid.png --grid # coordinate grid (macOS)
+agcu screenshot -a Music --path grid.png --grid # coordinate grid (macOS / Windows)
 ```
 
-`--grid` overlays absolute screen coordinates every 100 points on macOS. Use the
+`--grid` overlays absolute screen coordinates every 100 points on macOS and
+Windows. Use the
 top x labels and left y labels directly with `agcu click --x X --y Y -a App`;
 the app flag does **not** make click coordinates relative to its window. The grid
-accounts for the captured window's position and Retina image scale. Without
-`-a`, grid capture includes only the main display. Plain screenshots are unchanged;
-Linux and Windows return an unsupported-action error for `--grid`.
+accounts for the captured window's position and image scale (Retina on macOS).
+On Windows, `-a` matches by process name or window title (needed for UWP apps
+like Calculator) and captures via PrintWindow; without
+`-a`, grid capture includes only the primary display. Plain screenshots are unchanged;
+Linux returns an unsupported-action error for `--grid`.
 
 For example, a window at `(125, 80)` captured at 2× resolution places screen point
 `(400, 300)` at image pixel `(550, 440)`, but the click still uses `--x 400 --y 300`.

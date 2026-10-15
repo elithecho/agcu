@@ -9,6 +9,7 @@ description = "Windows backend for agcu — uses UI Automation (UIA) APIs"
 
 [dependencies]
 agent-computer-use-core = { workspace = true }
+image = "0.25"
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
