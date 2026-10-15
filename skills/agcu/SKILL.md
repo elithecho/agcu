@@ -1,6 +1,6 @@
 ---
 name: agcu
-description: REQUIRED for any task that involves operating a desktop application — opening apps, clicking buttons, typing into fields, pressing keys, scrolling, dragging, reading what's on screen, moving or resizing windows, or verifying state after an action. Always use the `agcu` CLI commands (open, snapshot, click, type, key, find, scroll, drag, batch, wait-for) instead of falling back to `open -a`, AppleScript, `osascript`, `xdotool`, `System Events`, or any other shell workaround — those can't read state back, don't verify, and are fragile across app updates. agcu is the canonical computer-use tool for controlling any macOS / Linux / Windows / Electron app via accessibility APIs. Trigger on prompts like "open Music and play X", "search for Y in Maps", "fill out this form", "compute in Calculator", "send a Slack message", "drag this file", "read what's in the current window", or anything where a human would click/type/look at a desktop app.
+description: Operate desktop apps using the agcu CLI via accessibility APIs or Electron CDP. Use for opening apps, inspecting UI, clicking, typing, pressing keys, scrolling, dragging, reading state, managing windows, and computer-use smoke tests on macOS, Linux, or Windows. Trigger on requests such as "compute in Calculator", "read this window", "use agcu", or "control this desktop app". Follow the host's tool and safety policies.
 license: MIT
 metadata:
   author: elithecho
@@ -12,6 +12,17 @@ metadata:
 
 You have access to `agcu`, a CLI tool that controls desktop applications. You can click buttons, type text, read screens, scroll, drag files, move windows — all from the terminal.
 
+## Install and check
+
+```bash
+npm install -g agcu@0.1.0
+agcu --version
+agcu check-permissions
+agcu --help
+```
+
+The published package includes native binaries; Rust is not required. For a local source build, use `cargo install --path cli` from the repository root instead. Do not silently change approval settings or grant permissions.
+
 ## First-run setup (user action)
 
 The first time you run an `agcu` command, Claude Code prompts the user to approve it. The user has three options, in order of preference:
@@ -19,7 +30,7 @@ The first time you run an `agcu` command, Claude Code prompts the user to approv
 1. **Easiest** — run `agcu setup` in a terminal. Interactive wizard that writes `Bash(agcu *)` to the right settings file. One-time. If the user seems frustrated by repeated approval prompts, suggest this.
 
    If you (the agent) are running it yourself and can't answer prompts, use the non-interactive flags:
-   - `agcu setup --yes` → unsupervised + global (recommended default)
+   - `agcu setup --yes` → unsupervised + global (only if the user explicitly requests this approval policy)
    - `agcu setup --mode <unsupervised|supervised> --scope <global|project>` for specific combos
 
 2. **Quickest** — pick _"Yes, and don't ask again for: `agcu *`"_ in the approval prompt. Covers only that specific subcommand pattern; you'll get prompted again for other subcommands.
@@ -95,7 +106,7 @@ agcu click @e5                         # single click (AXPress, headless)
 agcu click @e5 --count 2               # double-click (opens files, plays songs)
 ```
 
-`click` tries AXPress first (background, no focus steal). Only falls back to mouse simulation for double-click or right-click.
+`click` tries AXPress first. If AXPress is unsupported, or for double/right clicks, it may fall back to mouse simulation and steal focus. A success response alone does not prove the intended UI state changed.
 
 For elements with stable IDs (won't change between snapshots):
 
@@ -214,9 +225,9 @@ agcu drag --from-x 300 --from-y 55 --to-x 1000 --to-y 200 -a Finder
 
 ## Electron apps (CDP)
 
-Electron apps (Slack, Cursor, VS Code, Postman, Discord) are automatically detected. agcu relaunches them with CDP support on first use.
+Electron apps (Slack, Cursor, VS Code, Postman, Discord) are automatically detected. First use may relaunch them with a remote debugging port. Ask before disrupting an existing session; use `--no-cdp` for native-only inspection when relaunch is not authorized. Do not test against private messages or unsaved work without permission.
 
-Everything works headless — no window activation, no mouse, no focus steal:
+CDP actions can avoid native mouse input, but focus, app support, and delivery still need verification:
 
 ```bash
 agcu snapshot -a Slack -i -c           # full DOM tree via CDP
@@ -236,70 +247,6 @@ agcu key cmd+a -a Slack                # select all
 agcu key backspace -a Slack            # clear
 agcu type "your text" -a Slack         # now type
 ```
-
-## Verification
-
-Never assume an action worked. Verify by checking a **state-bearing attribute**, not just by looking at the tree again.
-
-### The `id` vs `name` distinction (critical)
-
-Many apps give a button a **fixed `id`** (the slot) and a **changing `name`** (the current label).
-
-Music's transport button is the canonical example:
-
-- `id` is always `"play"` — it identifies the button as "the transport button", even when currently playing.
-- `name` flips between `"play"` and `"pause"` depending on playback state.
-
-**To detect state, read `name`, not `id`:**
-
-```bash
-# check if music is playing
-agcu find 'id="play"' -a Music --compact
-# → [{"name":"pause", ...}]   ← means: playback is ON
-# → [{"name":"play", ...}]    ← means: playback is OFF
-```
-
-The same pattern appears in many apps: bookmark/unbookmark, mute/unmute, expand/collapse, follow/unfollow. When you want to confirm a toggle worked, always read the element's **current `name`** after the action.
-
-### Inline verification with `--expect`
-
-```bash
-agcu click @e5 --expect 'name="Dashboard"'
-# clicks, then polls for an element with name="Dashboard". Fails if it never appears.
-```
-
-### Reading values
-
-```bash
-agcu get-value @e3                     # one element's value + role + position
-agcu find 'id="play"' -a Music --compact   # most stable if id is known
-agcu snapshot -a Safari -i -c          # broad check
-```
-
-### Idempotent typing
-
-```bash
-agcu ensure-text @e3 "hello"           # only types if value differs
-```
-
-### Reading dynamic computed values (e.g., Calculator result)
-
-Some apps don't surface the result as a normal `value` on a labeled element — it's hidden in a `staticText` node. Use `tree` and walk for any node with a `value`:
-
-```bash
-agcu tree -a Calculator -d 8 --compact | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-def walk(n):
-    if n.get('value'): print(n.get('role'), '=', repr(n['value']))
-    for c in n.get('children', []): walk(c)
-walk(d)
-"
-# → staticText = '1,234×7'
-# → staticText = '8,638'
-```
-
-**Locale gotcha:** numbers are locale-formatted. Indian locale shows `7^8 = 57,64,801`, international shows `5,764,801`. They're the same value. Before comparing, strip commas and spaces.
 
 ## Waiting
 
@@ -371,17 +318,20 @@ agcu click 'id="play"' -a Music
 - Always verify playback via the `name` of the transport button (`id="play"` is the slot; `name` holds state).
 - If `Return` doesn't trigger playback, click the transport play button as a fallback. Have a plan B.
 
-### Compute a multi-step calculation in Calculator (verified flow)
+### Compute a multi-step calculation in Calculator
+
+Inspect the current IDs first. On the tested macOS Calculator, the clear button changes **both name and ID**: `AllClear` when reset, `Clear` after input. Do not assume this ID is stable. For an isolated smoke test, `agcu key Escape -a Calculator` reset the input; re-snapshot to confirm before batching the observed digit/operator IDs.
 
 ```bash
 # 1. Open and snapshot — Calculator buttons have stable ids (Seven, Multiply, Equals, etc.)
 agcu open Calculator --wait
 agcu snapshot -a Calculator -i -c
 
-# 2. Use batch for the whole keystroke sequence. Avoids 17 per-process starts.
+# 2. Reset separately, then inspect before batching stable IDs.
+agcu key Escape -a Calculator
+agcu snapshot -a Calculator -i -c
 #    Example: 7^8 = 7×7×7×7×7×7×7×7 = 5,764,801
 echo '[
-  ["click","id=\"AllClear\"","-a","Calculator"],
   ["click","id=\"Seven\"","-a","Calculator"],
   ["click","id=\"Multiply\"","-a","Calculator"],
   ["click","id=\"Seven\"","-a","Calculator"],
@@ -416,9 +366,9 @@ for n in [d]:
 
 **Key lessons:**
 
-- When an app exposes stable `id=` on every interactive element (Calculator does), skip snapshotting between clicks — just batch them.
+- Batch only observed, stable digit/operator IDs. Calculator's clear button is state-dependent (`AllClear` / `Clear`); reset and inspect it separately.
 - The result isn't on a labeled element; walk the tree for nodes with a `value`.
-- Numbers come locale-formatted. Strip commas/spaces before parsing.
+- Numbers come locale-formatted and may contain U+200E. Normalize grouping and Unicode format characters before parsing.
 
 ### Open a DM in Slack and send a message
 
@@ -494,13 +444,13 @@ agcu text -a "App Store"
 ## Rules
 
 1. **Always snapshot before acting.** You cannot interact with what you cannot see.
-2. **Always re-snapshot after acting.** The UI changed. Your refs are stale.
+2. **Re-snapshot after acting.** Refs may be stale. Exception: a bounded batch of observed stable IDs, with a state check immediately afterward.
 3. **Refs for the next step, IDs for the long haul.** Refs (`@e5`) are fastest for the immediate next action after a snapshot. Full `id="..."` selectors survive across snapshots and are the right choice for anything you'll return to after other UI changes.
 4. **Use `-i -c` on snapshots.** Interactive + compact reduces noise by 10x.
 5. **Prefer `id=` over `name=` when the app provides stable ids.** IDs don't change with state; names often do.
 6. **For state detection, read the `name` attribute — not `id`.** Many apps keep `id` as a fixed slot and flip `name` to reflect current state (play/pause, mute/unmute, bookmark/unbookmark).
 7. **Wait after navigation.** `wait-for` a known landmark first; fall back to `sleep 2-3` if there's none.
-8. **One action, then verify.** Don't chain multiple mutations without checking state between them.
+8. **One action, then verify.** Only batch mutations when targets are observed, stable, and safe; verify the resulting state immediately afterward.
 9. **Use `type -s @ref`** over `type -a App`. The selector path uses AXSetValue (reliable). The app path uses keyboard simulation (fragile, needs focus).
 10. **Use `scroll-to @ref`** when you know the element. It's headless. `scroll down` needs focus.
 11. **Never hardcode app-specific logic.** Don't write a helper like `play_song_in_music()`. Use the same primitives (`snapshot`, `click`, `type`, `key`, `find`) for every app. The scene tree tells you what to do — read it, act on it, verify.
@@ -648,9 +598,20 @@ agcu click 'id~="track-"' -a Music
 agcu click 'name~="Submit"' -a Safari
 ```
 
+## Screenshots and coordinate fallback
+
+```bash
+agcu screenshot -a Calculator --path /tmp/calculator.png
+agcu screenshot -a Calculator --grid --path /tmp/calculator-grid.png
+```
+
+`--grid` is macOS-only. Labels are absolute screen points, not image pixels or window-relative coordinates. Use them with `agcu click --x X --y Y -a App` only after inspecting the capture. Recapture after a window moves or resizes, and verify delivery afterward. Prefer refs/selectors whenever possible.
+
+Accessibility permission does not imply Screen Recording permission. If capture fails, report the error and ask the user to check Screen Recording permission and window availability; do not claim a screenshot exists. Keep captures app-scoped and outside Git to avoid exposing unrelated private content.
+
 ## Output format
 
-All output is JSON:
+Most commands emit JSON, but `snapshot` emits a text outline and `text` emits plain text. `batch` may emit each command's response followed by a final JSON results array: do not parse its entire stdout as one JSON document. Inspect every result's `success`/`error` even with `--bail`; a failed batch was observed exiting zero. These are example JSON responses:
 
 ```json
 {"success": true, "message": "pressed \"7\" at (453, 354)"}
