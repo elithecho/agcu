@@ -5,7 +5,7 @@ import { roobertMono } from './fonts/roobert-mono';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'agent-computer-use — Computer use CLI for AI agents',
+  title: 'agcu — Agent Computer Use CLI for AI agents',
   description:
     'Control any desktop app from the terminal. Click buttons, type text, read screens — all through the accessibility tree. Built in Rust.',
   keywords: [
@@ -19,31 +19,22 @@ export const metadata: Metadata = {
     'Electron',
     'CDP',
     'screen reader',
-    'agent-computer-use',
+    'agcu',
   ],
-  metadataBase: new URL('https://agent-computer-use.dev'),
+  metadataBase: new URL('https://github.com/elithecho/agcu'),
   openGraph: {
-    title: 'agent-computer-use — Computer use CLI for AI agents',
+    title: 'agcu — Agent Computer Use CLI for AI agents',
     description:
       'Control any desktop app from the terminal. Click buttons, type text, read screens. Built in Rust.',
-    url: 'https://agent-computer-use.dev',
-    siteName: 'agent-computer-use',
+    url: 'https://github.com/elithecho/agcu',
+    siteName: 'agcu',
     type: 'website',
-    images: [
-      {
-        url: '/meta.png',
-        width: 1200,
-        height: 630,
-        alt: 'agent-computer-use — Computer use CLI for AI agents',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'agent-computer-use — Computer use CLI for AI agents',
+    title: 'agcu — Agent Computer Use CLI for AI agents',
     description:
       'Control any desktop app from the terminal. Click buttons, type text, read screens. Built in Rust.',
-    images: ['/meta.png'],
   },
   robots: {
     index: true,

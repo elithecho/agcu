@@ -1,9 +1,11 @@
-FROM rust:1.85-bookworm
+FROM rust:1.93.1-bookworm
 
-RUN apt-get update && apt-get install -y \
-    gcc-aarch64-linux-gnu \
-    gcc-x86-64-linux-gnu \
-    mingw-w64 \
+RUN host="$(dpkg --print-architecture)" \
+    && if [ "$host" = arm64 ]; then cross=gcc-x86-64-linux-gnu; else cross=gcc-aarch64-linux-gnu; fi \
+    && dpkg --add-architecture amd64 && dpkg --add-architecture arm64 \
+    && apt-get update && apt-get install -y \
+    "${cross}:${host}" "mingw-w64:${host}" "pkg-config:${host}" \
+    libssl-dev:amd64 libssl-dev:arm64 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN rustup target add \
@@ -11,14 +13,9 @@ RUN rustup target add \
     aarch64-unknown-linux-gnu \
     x86_64-pc-windows-gnu
 
-RUN cargo install cargo-zigbuild
-
-RUN mkdir -p /.cargo && echo '\
-[target.aarch64-unknown-linux-gnu]\n\
-linker = "aarch64-linux-gnu-gcc"\n\
-\n\
-[target.x86_64-pc-windows-gnu]\n\
-linker = "x86_64-w64-mingw32-gcc"\n\
-' > /.cargo/config.toml
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
+    CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc \
+    PKG_CONFIG_ALLOW_CROSS=1
 
 WORKDIR /build

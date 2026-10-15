@@ -498,21 +498,59 @@ impl Platform for MacOSPlatform {
                 }
             }
 
-            Action::Screenshot { path, app } => {
-                let output_path = path.clone().unwrap_or_else(|| {
-                    format!(
-                        "/tmp/agent-computer-use-screenshot-{}.png",
-                        std::process::id()
-                    )
-                });
+            Action::Screenshot { path, app, grid } => {
+                let output_path = path
+                    .clone()
+                    .unwrap_or_else(|| format!("/tmp/agcu-screenshot-{}.png", std::process::id()));
+
+                if *grid {
+                    return screenshot_grid_to_png(&output_path, || {
+                        let (image, bounds) = if let Some(app_name) = app {
+                            let windows = get_capture_windows(app_name, self)?;
+                            let mut captured = None;
+                            let mut last_error = None;
+                            for window in windows {
+                                let Some(bounds) = window.bounds else {
+                                    last_error = Some(Error::PlatformError {
+                                        message: format!(
+                                            "missing capture bounds for window {}",
+                                            window.id
+                                        ),
+                                    });
+                                    continue;
+                                };
+                                match capture_grid_window(window.id, bounds) {
+                                    Ok(image) => {
+                                        captured = Some((image, bounds));
+                                        break;
+                                    }
+                                    Err(error) => last_error = Some(error),
+                                }
+                            }
+                            captured.ok_or_else(|| {
+                                last_error.unwrap_or_else(|| Error::PlatformError {
+                                    message: format!("no capturable window found for {app_name}"),
+                                })
+                            })?
+                        } else {
+                            let display = core_graphics::display::CGDisplay::main();
+                            let image = display.image().ok_or_else(|| Error::PlatformError {
+                                message: "failed to capture main display; check Screen Recording permission".into(),
+                            })?;
+                            crate::screenshot::ensure_readable(&image)?;
+                            (image, display.bounds())
+                        };
+                        Ok((image, bounds))
+                    });
+                }
 
                 let mut args = vec!["-x".to_string()];
 
                 if let Some(ref app_name) = app {
-                    let window_ids = get_window_ids(app_name, self)?;
+                    let windows = get_capture_windows(app_name, self)?;
                     let mut last_error = None;
-                    for window_id in window_ids {
-                        match capture_window_to_png(window_id, &output_path) {
+                    for window in windows {
+                        match capture_window_to_png(window.id, &output_path) {
                             Ok(()) => {
                                 return Ok(ActionResult {
                                     success: true,
@@ -752,7 +790,15 @@ fn collect_text(node: &AccessibilityNode, parts: &mut Vec<String>) {
     }
 }
 
-fn get_window_ids(app_name: &str, platform: &MacOSPlatform) -> Result<Vec<u32>> {
+#[derive(Clone)]
+struct CaptureWindow {
+    id: u32,
+    area: f64,
+    title: String,
+    bounds: Option<core_graphics::geometry::CGRect>,
+}
+
+fn get_capture_windows(app_name: &str, platform: &MacOSPlatform) -> Result<Vec<CaptureWindow>> {
     use core_foundation::base::{CFType, TCFType};
     use core_foundation::string::CFString;
 
@@ -780,7 +826,7 @@ fn get_window_ids(app_name: &str, platform: &MacOSPlatform) -> Result<Vec<u32>> 
     let title_key = CFString::new("kCGWindowName");
     let layer_key = CFString::new("kCGWindowLayer");
 
-    let mut candidates: Vec<(u32, f64, String)> = Vec::new();
+    let mut candidates = Vec::new();
 
     for i in 0..cf_array.len() {
         let Some(entry) = cf_array.get(i) else {
@@ -924,7 +970,15 @@ fn get_window_ids(app_name: &str, platform: &MacOSPlatform) -> Result<Vec<u32>> 
             }
         }
 
-        candidates.push((win_id as u32, (width * height) as f64, title));
+        let bounds_dictionary =
+            unsafe { core_foundation::dictionary::CFDictionary::wrap_under_get_rule(bounds_dict) };
+        let bounds = core_graphics::geometry::CGRect::from_dict_representation(&bounds_dictionary);
+        candidates.push(CaptureWindow {
+            id: win_id as u32,
+            area: (width * height) as f64,
+            title,
+            bounds,
+        });
     }
 
     if candidates.is_empty() {
@@ -937,9 +991,9 @@ fn get_window_ids(app_name: &str, platform: &MacOSPlatform) -> Result<Vec<u32>> 
     // example), the old largest-window heuristic often selects the lobby. Prefer
     // non-dashboard windows and, among plausible app windows, the smaller one.
     // Single-window apps keep the previous behavior.
-    let mut filtered: Vec<(u32, f64, String)> = candidates
+    let mut filtered: Vec<CaptureWindow> = candidates
         .iter()
-        .filter(|(_, _, title)| !title.to_lowercase().contains("dashboard"))
+        .filter(|window| !window.title.to_lowercase().contains("dashboard"))
         .cloned()
         .collect();
     if filtered.is_empty() {
@@ -947,24 +1001,84 @@ fn get_window_ids(app_name: &str, platform: &MacOSPlatform) -> Result<Vec<u32>> 
     }
 
     if filtered.len() > 1 {
-        filtered.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+        filtered.sort_by(|a, b| {
+            a.area
+                .partial_cmp(&b.area)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
     } else {
-        filtered.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        filtered.sort_by(|a, b| {
+            b.area
+                .partial_cmp(&a.area)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
     }
 
-    Ok(filtered.into_iter().map(|(id, _, _)| id).collect())
+    Ok(filtered)
+}
+
+fn capture_grid_window(
+    window_id: u32,
+    bounds: core_graphics::geometry::CGRect,
+) -> Result<core_graphics::image::CGImage> {
+    use core_graphics::window::{create_image, kCGWindowListOptionIncludingWindow};
+    capture_grid_window_using(window_id, |options| {
+        create_image(
+            bounds,
+            kCGWindowListOptionIncludingWindow,
+            window_id,
+            options,
+        )
+    })
+}
+
+fn capture_grid_window_using(
+    window_id: u32,
+    mut capture: impl FnMut(u32) -> Option<core_graphics::image::CGImage>,
+) -> Result<core_graphics::image::CGImage> {
+    use core_graphics::window::{kCGWindowImageBestResolution, kCGWindowImageBoundsIgnoreFraming};
+    let mut last_error = Error::PlatformError {
+        message: format!("failed to capture window {window_id}; check Screen Recording permission and window availability"),
+    };
+    for options in [
+        kCGWindowImageBoundsIgnoreFraming | kCGWindowImageBestResolution,
+        kCGWindowImageBoundsIgnoreFraming,
+    ] {
+        if let Some(image) = capture(options) {
+            match crate::screenshot::ensure_readable(&image) {
+                Ok(()) => return Ok(image),
+                Err(error) => last_error = error,
+            }
+        }
+    }
+    Err(last_error)
+}
+
+fn screenshot_grid_to_png(
+    output_path: &str,
+    capture: impl FnOnce() -> Result<(
+        core_graphics::image::CGImage,
+        core_graphics::geometry::CGRect,
+    )>,
+) -> Result<ActionResult> {
+    let (image, bounds) = capture()?;
+    let image = crate::screenshot::overlay(&image, bounds)?;
+    write_image_to_png(&image, output_path)?;
+    Ok(ActionResult {
+        success: true,
+        message: Some(format!(
+            "screenshot saved to {output_path} with coordinate grid (100 screen points)"
+        )),
+        path: Some(output_path.into()),
+        data: None,
+    })
 }
 
 fn capture_window_to_png(window_id: u32, output_path: &str) -> Result<()> {
-    use core_foundation::base::{CFRelease, TCFType};
-    use core_foundation::string::CFString;
-    use core_foundation::url::CFURL;
     use core_graphics::window::{
         create_image, kCGWindowImageBestResolution, kCGWindowImageBoundsIgnoreFraming,
         kCGWindowImageDefault, kCGWindowListOptionIncludingWindow,
     };
-    use foreign_types::ForeignType;
-    use std::path::Path;
 
     let window_bounds = unsafe { core_graphics::display::CGRectNull };
     let image = create_image(
@@ -985,11 +1099,20 @@ fn capture_window_to_png(window_id: u32, output_path: &str) -> Result<()> {
         message: format!("failed to capture window {window_id}"),
     })?;
 
-    let url = CFURL::from_path(Path::new(output_path), false).ok_or_else(|| {
-        Error::PlatformError {
+    write_image_to_png(&image, output_path)
+}
+
+fn write_image_to_png(image: &core_graphics::image::CGImage, output_path: &str) -> Result<()> {
+    use core_foundation::base::{CFRelease, TCFType};
+    use core_foundation::string::CFString;
+    use core_foundation::url::CFURL;
+    use foreign_types::ForeignType;
+    use std::path::Path;
+
+    let url =
+        CFURL::from_path(Path::new(output_path), false).ok_or_else(|| Error::PlatformError {
             message: format!("invalid screenshot path: {output_path}"),
-        }
-    })?;
+        })?;
     let png_type = CFString::new("public.png");
 
     let destination = unsafe {
@@ -1155,4 +1278,95 @@ fn running_apps_native() -> Vec<(i32, String)> {
     }
 
     result
+}
+
+#[cfg(test)]
+mod screenshot_capture_tests {
+    use super::*;
+    use core_graphics::base::{
+        kCGBitmapByteOrder32Big, kCGImageAlphaNoneSkipLast, kCGImageAlphaPremultipliedLast,
+    };
+    use core_graphics::color_space::CGColorSpace;
+    use core_graphics::context::CGContext;
+    use core_graphics::geometry::{CGPoint, CGRect, CGSize};
+    use core_graphics::image::CGImage;
+
+    fn image(opaque: bool) -> CGImage {
+        let context = CGContext::create_bitmap_context(
+            None,
+            16,
+            16,
+            8,
+            64,
+            &CGColorSpace::create_device_rgb(),
+            kCGBitmapByteOrder32Big
+                | if opaque {
+                    kCGImageAlphaNoneSkipLast
+                } else {
+                    kCGImageAlphaPremultipliedLast
+                },
+        );
+        let bounds = CGRect::new(&CGPoint::new(0.0, 0.0), &CGSize::new(16.0, 16.0));
+        context.clear_rect(bounds);
+        if opaque {
+            context.set_rgb_fill_color(0.0, 0.0, 0.0, 1.0);
+            context.fill_rect(bounds);
+        }
+        context.create_image().unwrap()
+    }
+
+    #[test]
+    fn empty_capture_is_error_without_create_or_overwrite() {
+        let directory = std::env::temp_dir()
+            .join("opencode")
+            .join(format!("grid-empty-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("empty.png");
+        let bounds = CGRect::new(&CGPoint::new(125.0, 80.0), &CGSize::new(8.0, 8.0));
+        for existing in [false, true] {
+            if existing {
+                std::fs::write(&path, b"keep existing file").unwrap();
+            }
+            let result = screenshot_grid_to_png(path.to_str().unwrap(), || {
+                capture_grid_window_using(42, |_| Some(image(false))).map(|image| (image, bounds))
+            });
+            assert!(
+                matches!(result, Err(Error::PlatformError { .. })),
+                "transparent capture must not return success"
+            );
+            if existing {
+                assert_eq!(std::fs::read(&path).unwrap(), b"keep existing file");
+            } else {
+                assert!(!path.exists(), "capture failure must not create a PNG");
+            }
+        }
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn transparent_best_resolution_retries_and_accepts_opaque_black_rgbx() {
+        let mut options = Vec::new();
+        let captured = capture_grid_window_using(42, |flags| {
+            options.push(flags);
+            Some(image(options.len() == 2))
+        })
+        .unwrap();
+        assert_eq!(options, vec![9, 1]);
+        assert_eq!((captured.width(), captured.height()), (16, 16));
+        let directory = std::env::temp_dir()
+            .join("opencode")
+            .join(format!("grid-readable-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("readable.png");
+        let bounds = CGRect::new(&CGPoint::new(125.0, 80.0), &CGSize::new(8.0, 8.0));
+        let result =
+            screenshot_grid_to_png(path.to_str().unwrap(), || Ok((captured, bounds))).unwrap();
+        assert!(result.success);
+        assert_eq!(result.path.as_deref(), path.to_str());
+        assert_eq!(
+            &std::fs::read(&path).unwrap()[..8],
+            &[137, 80, 78, 71, 13, 10, 26, 10]
+        );
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 }

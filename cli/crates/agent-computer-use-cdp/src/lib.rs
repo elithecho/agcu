@@ -57,7 +57,7 @@ impl<P: Platform> ElectronAwarePlatform<P> {
             .or_else(|| detect::find_cdp_port(app))
             .or_else(|| {
                 tracing::debug!("no CDP port for {app}, relaunching with CDP");
-                eprintln!("agent-computer-use: relaunching {app} with CDP support...");
+                eprintln!("agcu: relaunching {app} with CDP support...");
                 detect::relaunch_with_cdp(app)
             })?;
 

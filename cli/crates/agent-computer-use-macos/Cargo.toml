@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "macOS backend for agent-computer-use — uses AXUIElement accessibility APIs"
+description = "macOS backend for agcu — uses AXUIElement accessibility APIs"
 
 [dependencies]
 agent-computer-use-core = { workspace = true }

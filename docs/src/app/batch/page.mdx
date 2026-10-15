@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/docs';
   description="Execute multiple commands in a single process invocation."
 />
 
-Pipe a JSON array of commands to `agent-cu batch` to avoid per-command startup overhead.
+Pipe a JSON array of commands to `agcu batch` to avoid per-command startup overhead.
 
 ## Usage
 
@@ -16,7 +16,7 @@ echo '[
   ["click", "@e8"],
   ["click", "@e11"],
   ["click", "@e20"]
-]' | agent-cu batch
+]' | agcu batch
 ```
 
 ## Stop on Error
@@ -24,7 +24,7 @@ echo '[
 Use `--bail` to stop at the first failure:
 
 ```bash
-echo '[["click","@e1"],["click","@e99"]]' | agent-cu batch --bail
+echo '[["click","@e1"],["click","@e99"]]' | agcu batch --bail
 ```
 
 ## Interactive Explorer
@@ -32,9 +32,9 @@ echo '[["click","@e1"],["click","@e99"]]' | agent-cu batch --bail
 Explore the accessibility tree in a TUI:
 
 ```bash
-agent-cu observe Calculator        # TUI tree viewer
-agent-cu observe Maps -d 5         # Custom depth
-agent-cu observe Safari --refresh 1.0
+agcu observe -a Calculator        # TUI tree viewer
+agcu observe -a Maps -d 5         # Custom depth
+agcu observe -a Safari --refresh 1.0
 ```
 
 **Keys:** `j/k` navigate, `Enter` expand, `/` search, `y` copy selector, `q` quit

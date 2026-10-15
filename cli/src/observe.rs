@@ -444,7 +444,7 @@ fn render(f: &mut Frame, state: &AppState) {
         .split(f.area());
 
     let title = format!(
-        " agent-computer-use observe | {} | refreshed {:.0}s ago",
+        " agcu observe | {} | refreshed {:.0}s ago",
         state.status_msg,
         state.last_refresh.elapsed().as_secs_f64()
     );

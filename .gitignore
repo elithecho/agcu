@@ -29,7 +29,7 @@ Desktop.ini
 .agent-cu/
 
 # Precompiled binaries (built by CI, not committed)
-bin/agent-computer-use-*
+bin/agcu-*
 
 # Personal
 TEST_CASES.md

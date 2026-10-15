@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[derive(Clone, Copy, Debug, ValueEnum)]
 #[value(rename_all = "lowercase")]
 pub enum SetupMode {
-    /// Auto-approve all agent-cu commands (writes Bash(agent-cu *) to settings)
+    /// Auto-approve all agcu commands (writes Bash(agcu *) to settings)
     Unsupervised,
     /// Keep default Claude Code behaviour — ask before every command
     Supervised,
@@ -20,20 +20,21 @@ pub enum SetupScope {
 
 #[derive(Parser)]
 #[command(
-    name = "agent-cu",
+    name = "agcu",
+    bin_name = "agcu",
     version,
     about = "Computer use for AI agents",
-    long_about = "agent-computer-use — control any desktop app from the command line via the accessibility tree.\n\n\
+    long_about = "agcu — Agent Computer Use: control any desktop app from the command line via the accessibility tree.\n\n\
                   Click buttons, type text, read screens — all without stealing focus.\n\
                   Built for AI agents. Works for humans too.\n\n\
                   All output is JSON by default (machine-readable). Use --human for pretty output.",
     after_help = "Quick start:\n  \
-                  agent-cu apps                              # list running apps\n  \
-                  agent-cu snapshot Calculator -i -c          # interactive elements with refs\n  \
-                  agent-cu click @e5                          # click by ref\n  \
-                  agent-cu type @e3 \"hello\"                   # type into element\n  \
-                  agent-cu key cmd+c --app Safari             # press key combo\n\n\
-                  Docs: https://github.com/kortix-ai/agent-computer-use"
+                  agcu apps                              # list running apps\n  \
+                  agcu snapshot -a Calculator -i -c          # interactive elements with refs\n  \
+                  agcu click @e5                          # click by ref\n  \
+                  agcu type \"hello\" -s @e3                   # type into element\n  \
+                  agcu key cmd+c --app Safari             # press key combo\n\n\
+                  Docs: https://github.com/elithecho/agcu"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -89,9 +90,9 @@ pub enum Command {
     /// Returns all matching elements as a JSON array.
     ///
     /// Examples:
-    ///   agent-cu find 'role=button' --app Calculator
-    ///   agent-cu find 'name~="Submit"' --app Safari
-    ///   agent-cu find 'id="login-btn"' -d 5
+    ///   agcu find 'role=button' --app Calculator
+    ///   agcu find 'name~="Submit"' --app Safari
+    ///   agcu find 'id="login-btn"' -d 5
     #[command(alias = "f")]
     Find {
         /// Selector DSL expression or @ref
@@ -110,10 +111,10 @@ pub enum Command {
     /// Falls back to coordinate click if AXPress is unsupported.
     ///
     /// Examples:
-    ///   agent-cu click @e5
-    ///   agent-cu click 'name="Login"' --app Safari
-    ///   agent-cu click @e5 --count 2        # double-click
-    ///   agent-cu click @e5 --expect 'name="Dashboard"'
+    ///   agcu click @e5
+    ///   agcu click 'name="Login"' --app Safari
+    ///   agcu click @e5 --count 2        # double-click
+    ///   agcu click @e5 --expect 'name="Dashboard"'
     #[command(alias = "c")]
     Click {
         /// Selector DSL expression or @ref
@@ -144,9 +145,9 @@ pub enum Command {
     /// Without: simulates keypresses into the focused app.
     ///
     /// Examples:
-    ///   agent-cu type "hello" -s @e3           # type into element (AXValue)
-    ///   agent-cu type "hello" --app Safari     # keyboard simulation
-    ///   agent-cu type "more" -s @e3 --append   # append without clearing
+    ///   agcu type "hello" -s @e3           # type into element (AXValue)
+    ///   agcu type "hello" --app Safari     # keyboard simulation
+    ///   agcu type "more" -s @e3 --append   # append without clearing
     #[command(name = "type")]
     Type {
         /// Text to type
@@ -171,9 +172,9 @@ pub enum Command {
     /// Press a key or key combination
     ///
     /// Examples:
-    ///   agent-cu key Return --app Calculator
-    ///   agent-cu key cmd+c --app TextEdit
-    ///   agent-cu key cmd+shift+p --app "VS Code"
+    ///   agcu key Return --app Calculator
+    ///   agcu key cmd+c --app TextEdit
+    ///   agcu key cmd+shift+p --app "VS Code"
     #[command(alias = "k")]
     Key {
         /// Key expression (e.g., Return, cmd+c, ctrl+shift+p)
@@ -189,8 +190,8 @@ pub enum Command {
     /// Scroll an element into view using AXScrollToVisible
     ///
     /// Examples:
-    ///   agent-cu scroll-to @e42
-    ///   agent-cu scroll-to 'name="Submit"' --app Safari
+    ///   agcu scroll-to @e42
+    ///   agcu scroll-to 'name="Submit"' --app Safari
     #[command(name = "scroll-to")]
     ScrollTo {
         /// Element to scroll into view (selector DSL or @ref)
@@ -203,9 +204,9 @@ pub enum Command {
     /// Scroll within an app
     ///
     /// Examples:
-    ///   agent-cu scroll down --app Music
-    ///   agent-cu scroll down --amount 10 --app Music
-    ///   agent-cu scroll down --at 'name="List"' --app Music
+    ///   agcu scroll down --app Music
+    ///   agcu scroll down --amount 10 --app Music
+    ///   agcu scroll down --at 'name="List"' --app Music
     #[command(alias = "s")]
     Scroll {
         /// Direction: up, down, left, right
@@ -253,8 +254,8 @@ pub enum Command {
     /// Returns the element when found, or errors on timeout.
     ///
     /// Examples:
-    ///   agent-cu wait-for 'name="Dashboard"'
-    ///   agent-cu wait-for 'role=button' --interval 500
+    ///   agcu wait-for 'name="Dashboard"'
+    ///   agcu wait-for 'role=button' --interval 500
     #[command(name = "wait-for", alias = "wait")]
     WaitFor {
         /// Element to wait for (selector DSL)
@@ -269,7 +270,7 @@ pub enum Command {
     /// Idempotent: won't type if the value already matches.
     ///
     /// Examples:
-    ///   agent-cu ensure-text @e3 "hello@example.com"
+    ///   agcu ensure-text @e3 "hello@example.com"
     #[command(name = "ensure-text")]
     EnsureText {
         /// Target element (selector DSL or @ref)
@@ -283,8 +284,8 @@ pub enum Command {
     /// Lighter than `snapshot` — reads a single element.
     ///
     /// Examples:
-    ///   agent-cu get-value @e3
-    ///   agent-cu gv 'name="Email"' --app Safari
+    ///   agcu get-value @e3
+    ///   agcu gv 'name="Email"' --app Safari
     #[command(name = "get-value", alias = "gv")]
     GetValue {
         /// Target element (selector DSL or @ref)
@@ -297,8 +298,8 @@ pub enum Command {
     /// Launch an application
     ///
     /// Examples:
-    ///   agent-cu open Safari --wait
-    ///   agent-cu open Calculator
+    ///   agcu open Safari --wait
+    ///   agcu open Calculator
     Open {
         /// Application name
         app: String,
@@ -313,9 +314,9 @@ pub enum Command {
     /// See examples/ folder for workflow templates.
     ///
     /// Examples:
-    ///   agent-cu run examples/calculator.yaml
-    ///   agent-cu run workflow.yaml --app Calculator
-    ///   agent-cu run workflow.yaml --dry-run
+    ///   agcu run examples/calculator.yaml
+    ///   agcu run workflow.yaml --app Calculator
+    ///   agcu run workflow.yaml --dry-run
     #[command(alias = "r")]
     Run {
         /// Path to YAML workflow file
@@ -348,11 +349,11 @@ pub enum Command {
     ///
     /// The primary command for AI agent workflows. Returns a
     /// compact tree with @refs (e.g., @e1, @e2) for each element.
-    /// Use refs with other commands: `agent-cu click @e5`
+    /// Use refs with other commands: `agcu click @e5`
     ///
     /// Examples:
-    ///   agent-cu snapshot --app Calculator -i -c
-    ///   agent-cu snapshot --app Music -i -c -d 8
+    ///   agcu snapshot --app Calculator -i -c
+    ///   agcu snapshot --app Music -i -c -d 8
     #[command(alias = "snap")]
     Snapshot {
         /// Target application name
@@ -374,8 +375,8 @@ pub enum Command {
     /// Pipe a JSON array of commands to avoid per-command startup cost.
     ///
     /// Examples:
-    ///   echo '[["click","@e5"],["click","@e8"]]' | agent-cu batch
-    ///   echo '[["click","@e1"]]' | agent-cu batch --bail
+    ///   echo '[["click","@e5"],["click","@e8"]]' | agcu batch
+    ///   echo '[["click","@e1"]]' | agcu batch --bail
     Batch {
         /// Stop on first error
         #[arg(long)]
@@ -385,9 +386,9 @@ pub enum Command {
     /// Take a screenshot
     ///
     /// Examples:
-    ///   agent-cu screenshot
-    ///   agent-cu screenshot --path /tmp/screen.png
-    ///   agent-cu screenshot --app Calculator
+    ///   agcu screenshot
+    ///   agcu screenshot --path /tmp/screen.png
+    ///   agcu screenshot --app Calculator
     Screenshot {
         /// Save path (auto-generated if omitted)
         #[arg(long)]
@@ -395,6 +396,10 @@ pub enum Command {
         /// Capture only this app's window
         #[arg(short, long)]
         app: Option<String>,
+        /// Overlay absolute click coordinates every 100 screen points (macOS only).
+        /// Without --app, capture only the main display.
+        #[arg(long)]
+        grid: bool,
     },
 
     /// List windows for an app
@@ -453,8 +458,8 @@ pub enum Command {
 
     /// Configure Claude Code / agent integrations
     ///
-    /// Adds `Bash(agent-cu *)` to Claude Code's permissions allow-list so
-    /// agent-cu runs without per-command approval prompts. Respects the
+    /// Adds `Bash(agcu *)` to Claude Code's permissions allow-list so
+    /// agcu runs without per-command approval prompts. Respects the
     /// trust boundary — nothing happens without explicit consent.
     ///
     /// Fully interactive by default. Use --mode and/or --scope to bypass
@@ -462,10 +467,10 @@ pub enum Command {
     /// --scope global (scriptable for CI or AI agents).
     ///
     /// Examples:
-    ///   agent-cu setup                                    # interactive
-    ///   agent-cu setup --yes                              # unsupervised + global
-    ///   agent-cu setup --mode unsupervised --scope project
-    ///   agent-cu setup --mode supervised                  # no-op, explicit
+    ///   agcu setup                                    # interactive
+    ///   agcu setup --yes                              # unsupervised + global
+    ///   agcu setup --mode unsupervised --scope project
+    ///   agcu setup --mode supervised                  # no-op, explicit
     Setup {
         /// Skip prompts — alias for --mode unsupervised --scope global
         #[arg(short, long)]
@@ -485,12 +490,54 @@ pub enum Command {
     /// Output shell completions to stdout.
     ///
     /// Setup:
-    ///   agent-cu completions bash > /etc/bash_completion.d/agent-computer-use
-    ///   agent-cu completions zsh  > "${fpath[1]}/_agent-computer-use"
-    ///   agent-cu completions fish > ~/.config/fish/completions/agent-computer-use.fish
+    ///   agcu completions bash > /etc/bash_completion.d/agcu
+    ///   agcu completions zsh  > "${fpath[1]}/_agcu"
+    ///   agcu completions fish > ~/.config/fish/completions/agcu.fish
     Completions {
         /// Shell to generate completions for
         #[arg(value_enum)]
         shell: clap_complete::Shell,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn screenshot_options_and_plain_default() {
+        let cli = Cli::try_parse_from([
+            "agcu",
+            "screenshot",
+            "-a",
+            "App",
+            "--path",
+            "shot.png",
+            "--grid",
+        ])
+        .unwrap();
+        match cli.command {
+            Command::Screenshot { app, path, grid } => {
+                assert_eq!(app.as_deref(), Some("App"));
+                assert_eq!(path.as_deref(), Some("shot.png"));
+                assert!(grid);
+            }
+            _ => panic!("expected screenshot"),
+        }
+        for args in [
+            vec!["agcu", "screenshot"],
+            vec!["agcu", "screenshot", "--grid"],
+        ] {
+            let cli = Cli::try_parse_from(&args).unwrap();
+            match cli.command {
+                Command::Screenshot { app, path, grid } => {
+                    assert_eq!(app, None);
+                    assert_eq!(path, None);
+                    assert_eq!(grid, args.len() == 3);
+                }
+                _ => panic!("expected screenshot"),
+            }
+        }
+        assert!(Cli::try_parse_from(["agcu", "screenshot", "Take", "a", "screenshot"]).is_err());
+    }
 }

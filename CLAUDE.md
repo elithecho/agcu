@@ -1,11 +1,11 @@
-# agent-computer-use
+# agcu — Agent Computer Use
 
 Computer use CLI for AI agents. Built with Rust, distributed via npm.
 
 ## Repo structure
 
 ```
-agent-computer-use/
+agcu/
 ├── cli/                Rust CLI (Cargo workspace)
 │   ├── src/            Main binary, handlers, actions, snapshot, wait, DSL parser
 │   └── crates/
@@ -43,7 +43,7 @@ pnpm bench:diff         # compare benchmark runs
 
 Rust code lives in `cli/`. The workspace has:
 
-- `agent-computer-use` (crate) — produces the `agent-cu` binary, CLI args, handlers
+- `agcu` (crate) — produces the `agcu` binary, CLI args, handlers
 - `agent-computer-use-core` — platform-agnostic types (Platform trait, AccessibilityNode, Selector, element utilities)
 - `agent-computer-use-macos` — macOS backend (AXUIElement, CGEvent, batch `AXUIElementCopyMultipleAttributeValues`)
 - `agent-computer-use-cdp` — CDP bridge (auto-detects Electron, auto-relaunches with debug port, WebSocket connection caching)

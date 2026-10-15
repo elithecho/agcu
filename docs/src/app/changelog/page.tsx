@@ -57,7 +57,10 @@ export default function Changelog() {
     <div>
       <div className="mb-10 border-b border-border pb-6">
         <h1 className="text-xl mb-2 font-bold tracking-tight">Changelog</h1>
-        <p className="mt-2 text-sm text-muted-foreground">What shipped and when.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Upstream release history. Historical command and repository names are retained; current
+          installations use agcu.
+        </p>
       </div>
 
       <div className="space-y-0">

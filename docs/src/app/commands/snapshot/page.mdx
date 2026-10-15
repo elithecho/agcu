@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/docs';
 ## Usage
 
 ```bash
-agent-cu snapshot [OPTIONS]
+agcu snapshot [OPTIONS]
 ```
 
 ## Options
@@ -23,9 +23,9 @@ agent-cu snapshot [OPTIONS]
 ## Examples
 
 ```bash
-agent-cu snapshot -a Calculator -i -c        # interactive + compact (best for AI)
-agent-cu snapshot -a Safari -i -c -d 8       # deeper tree
-agent-cu snapshot -a Music                   # full tree (verbose)
+agcu snapshot -a Calculator -i -c        # interactive + compact (best for AI)
+agcu snapshot -a Safari -i -c -d 8       # deeper tree
+agcu snapshot -a Music                   # full tree (verbose)
 ```
 
 ## Output
@@ -46,8 +46,8 @@ application "Calculator"
 Each `[@eN]` is a ref you can use in other commands:
 
 ```bash
-agent-cu click @e3          # clicks "7"
-agent-cu get-value @e1      # reads "Delete" button info
+agcu click @e3          # clicks "7"
+agcu get-value @e1      # reads "Delete" button info
 ```
 
 ## Refs
@@ -62,7 +62,7 @@ agent-cu get-value @e1      # reads "Delete" button info
 For Electron apps, snapshot merges the native window shell (menus, title bar) with the CDP DOM tree:
 
 ```bash
-agent-cu snapshot -a Slack -i -c
+agcu snapshot -a Slack -i -c
 ```
 
 CDP elements get `id=__cdp:N` identifiers and are clickable via JavaScript.

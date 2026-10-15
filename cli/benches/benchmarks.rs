@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-// The selector_dsl module is private in the agent-computer-use binary crate.
+// The selector_dsl module is private in the agcu binary crate.
 // We test the public interface by importing agent_computer_use_core types and
 // re-implementing the DSL parser inline for benchmarking purposes.
 // Since the binary re-exports the parse function, we include the

@@ -3,7 +3,7 @@ node_modules
 out
 cli/target
 target
-bin/agent-computer-use-*
+bin/agcu-*
 *.rs
 pnpm-lock.yaml
 .changeset

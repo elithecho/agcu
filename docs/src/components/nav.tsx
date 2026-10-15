@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { ThemeToggle } from './theme-toggle';
 import { SearchButton } from './search';
 import { MobileSidebar } from './mobile-sidebar';
@@ -25,23 +24,11 @@ export function Nav() {
       >
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2.5">
-            <Image
-              src="/brandkit/Logo/Brandmark/SVG/Brandmark White.svg"
-              alt="Kortix"
-              width={18}
-              height={16}
-              className="h-4 w-auto hidden dark:block"
-            />
-            <Image
-              src="/brandkit/Logo/Brandmark/SVG/Brandmark Black.svg"
-              alt="Kortix"
-              width={18}
-              height={16}
-              className="h-4 w-auto dark:hidden"
-            />
-            <span className="text-xl font-semibold tracking-tight">agent-computer-use</span>
+            <span className="text-xl font-semibold tracking-tight">agcu</span>
             <div className="h-3.5 w-px bg-border/60 hidden sm:block" />
-            <span className="text-[11px] text-muted-foreground/50 hidden sm:block">by Kortix</span>
+            <span className="text-[11px] text-muted-foreground/50 hidden sm:block">
+              Agent Computer Use
+            </span>
           </Link>
         </div>
 
@@ -52,7 +39,7 @@ export function Nav() {
           <MobileSidebar />
           <ThemeToggle />
           <a
-            href="https://github.com/kortix-ai/agent-computer-use"
+            href="https://github.com/elithecho/agcu"
             className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground hover:bg-foreground/[0.05]"
           >
             <GithubIcon className="h-4 w-4" />

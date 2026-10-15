@@ -6,5 +6,6 @@ compile_error!("agent-computer-use-macos only compiles on macOS");
 pub mod ax;
 pub mod input;
 mod platform;
+mod screenshot;
 
 pub use platform::MacOSPlatform;

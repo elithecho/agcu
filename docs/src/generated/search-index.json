@@ -1,7 +1,7 @@
 [
   {
     "title": "Quick Start",
-    "content": "Quick Start Install and try it in 2 minutes agent-computer-use Computer use CLI for AI Agents. Windows agent-computer-use lets you control desktop apps from the terminal. Click buttons, type into\n        fields, read what&apos;s on screen. All using a single CLI. Star it on GitHub How it works agent-computer-use reads the accessibility tree — the same structure screen readers use. It\n        sees every button, text field, and menu item in any app. You point, it acts. Capture every interactive element. Each gets a ref. Use refs to click, type, or read. UI changed? Snapshot again for fresh refs. What can you do with it? Anything you&apos;d do by clicking around:",
+    "content": "Quick Start Install and try it in 2 minutes agcu — Agent Computer Use Computer use CLI for AI Agents. Windows agcu lets you control desktop apps from the terminal. Click buttons, type into fields, read\n        what&apos;s on screen. All using a single CLI. Star it on GitHub agcu@0.0.1 is a reservation preview. The proper 0.1.0 CLI release is being prepared; until\n        it is published, use the source installation instructions. How it works agcu reads the accessibility tree — the same structure screen readers use. It sees every\n        button, text field, and menu item in any app. You point, it acts. Capture every interactive element. Each gets a ref. Use refs to click, type, or read. UI changed? Snapshot again for fresh refs. What can you do with it? Anything you&apos;d do by clicking around:",
     "href": "/",
     "pageTitle": "Quick Start"
   },
@@ -24,20 +24,26 @@
     "pageTitle": "Quick Start"
   },
   {
-    "title": "Quick setup (recommended)",
-    "content": "The setup script: 1. Installs Rust (if needed) 2. Installs dependencies 3. Builds and installs the agent-cu binary to ~/.cargo/bin 4. Prompts for accessibility permissions",
+    "title": "Local installation (recommended)",
+    "content": "Install Rust from rustup.rs first: Cargo installs agcu to ~/.cargo/bin; ensure that directory is on PATH. The optional ./scripts/setup.sh development helper checks Rust/Node, installs JS dependencies and builds ./cli/target/release/agcu. It does not install the binary on PATH or grant permissions.",
+    "href": "/installation#npm-after-publication",
+    "pageTitle": "Installation"
+  },
+  {
+    "title": "npm (after publication)",
+    "content": "agcu@0.0.1 is a reservation preview, not the complete CLI. The proper 0.1.0 release is being prepared. Until it is published, use the source installation above. After publication: The bundle contains macOS arm64/x64, Linux arm64/x64 and Windows x64 executables. Linux binaries use GNU libc and dynamically link OpenSSL 3, not Alpine/musl. Debian 12 container startup checks do not verify desktop accessibility or input delivery on Linux or Windows.",
     "href": "/installation#cargo",
     "pageTitle": "Installation"
   },
   {
     "title": "Permissions",
-    "content": "agent-computer-use needs accessibility access to control apps: 1. Open System Settings → Privacy & Security → Accessibility 2. Add your terminal app (Terminal, iTerm2, Warp, Cursor, VS Code) 3. Toggle it on Verify:",
+    "content": "agcu needs accessibility access to control apps: 1. Open System Settings → Privacy & Security → Accessibility 2. Add your terminal app (Terminal, iTerm2, Warp, Cursor, VS Code) 3. Toggle it on Verify:",
     "href": "/installation#verify-installation",
     "pageTitle": "Installation"
   },
   {
     "title": "Uninstall",
-    "content": "If you installed via Cargo (setup script, cargo install, or from source): If you installed via a Node package manager: commands={[ { id: 'npm', label: 'npm', cmd: 'npm uninstall -g agent-cu' }, { id: 'pnpm', label: 'pnpm', cmd: 'pnpm remove -g agent-cu' }, { id: 'yarn', label: 'yarn', cmd: 'yarn global remove agent-cu' }, { id: 'bun', label: 'bun', cmd: 'bun remove -g agent-cu' }, ]} /> You can also revoke accessibility access in System Settings → Privacy & Security → Accessibility by removing your terminal app from the list.",
+    "content": "If you installed via Cargo (cargo install, locally or from Git): If you installed via a Node package manager: commands={[ { id: 'npm', label: 'npm', cmd: 'npm uninstall -g agcu' }, { id: 'pnpm', label: 'pnpm', cmd: 'pnpm remove -g agcu' }, { id: 'yarn', label: 'yarn', cmd: 'yarn global remove agcu' }, { id: 'bun', label: 'bun', cmd: 'bun remove -g agcu' }, ]} /> You can also revoke accessibility access in System Settings → Privacy & Security → Accessibility by removing your terminal app from the list.",
     "href": "/installation",
     "pageTitle": "Installation"
   },
@@ -61,13 +67,13 @@
   },
   {
     "title": "Ref lifecycle",
-    "content": "1. Created when you run agent-cu snapshot 2. Cached in ~/.agent-cu/refs.json 3. Stale after any UI change (click, navigation, typing) 4. Warning after 5 minutes Always re-snapshot after acting. The UI changed — your refs are stale.",
+    "content": "1. Created when you run agcu snapshot 2. Cached in ~/.agent-cu/refs.json 3. Stale after any UI change (click, navigation, typing) 4. Warning after 5 minutes Always re-snapshot after acting. The UI changed — your refs are stale.",
     "href": "/snapshots#path-based-resolution",
     "pageTitle": "Snapshots & Refs"
   },
   {
     "title": "Path-based resolution",
-    "content": "Each ref stores the element's path in the tree (e.g., [0, 1, 3, 2]). When you use @e5, agent-cu walks the tree using this path — O(depth) lookup, much faster than searching. If the path becomes stale (element moved), agent-cu falls back to matching by role + name + id.",
+    "content": "Each ref stores the element's path in the tree (e.g., [0, 1, 3, 2]). When you use @e5, agcu walks the tree using this path — O(depth) lookup, much faster than searching. If the path becomes stale (element moved), agcu falls back to matching by role + name + id.",
     "href": "/snapshots#cdp-refs",
     "pageTitle": "Snapshots & Refs"
   },
@@ -139,7 +145,7 @@
   },
   {
     "title": "Background-first",
-    "content": "agent-computer-use is designed to run actions without bringing apps to the foreground. Most operations work while the app is minimized or behind other windows.",
+    "content": "agcu is designed to run actions without bringing apps to the foreground. Most operations work while the app is minimized or behind other windows.",
     "href": "/background#native-apps",
     "pageTitle": "Background Operation"
   },
@@ -157,7 +163,7 @@
   },
   {
     "title": "How AXPress works",
-    "content": "When you run agent-cu click @e5, agent-cu sends an AXPress action to the element via the accessibility API. This is the same mechanism VoiceOver uses — it doesn't move the mouse cursor or activate the window. The app processes the press in its event loop without becoming frontmost. If AXPress isn't supported for a particular element (rare), agent-cu falls back to coordinate-based mouse clicking, which does require the window to be visible.",
+    "content": "When you run agcu click @e5, agcu sends an AXPress action to the element via the accessibility API. This is the same mechanism VoiceOver uses — it doesn't move the mouse cursor or activate the window. The app processes the press in its event loop without becoming frontmost. If AXPress isn't supported for a particular element (rare), agcu falls back to coordinate-based mouse clicking, which does require the window to be visible.",
     "href": "/background#why-scroll-and-key-need-focus",
     "pageTitle": "Background Operation"
   },
@@ -169,37 +175,43 @@
   },
   {
     "title": "Interaction",
-    "content": "Command                              Description agent-cu click [selector] -a App   Click an element (AXPress, no focus steal) agent-cu type \"text\" -s @e3        Clear and type into a field (AXSetValue) agent-cu type \"text\" -a App        Type into focused field (keyboard sim) agent-cu key cmd+k -a Slack        Press a key or combo agent-cu scroll down -a Music      Scroll within an app agent-cu scroll-to @e42            Scroll element into view (headless) agent-cu drag @e5 @e10 -a Finder   Drag from one element to another",
+    "content": "Command                          Description agcu click [selector] -a App   Click an element (AXPress, no focus steal) agcu type \"text\" -s @e3        Clear and type into a field (AXSetValue) agcu type \"text\" -a App        Type into focused field (keyboard sim) agcu key cmd+k -a Slack        Press a key or combo agcu scroll down -a Music      Scroll within an app agcu scroll-to @e42            Scroll element into view (headless) agcu drag @e5 @e10 -a Finder   Drag from one element to another",
     "href": "/commands#discovery",
     "pageTitle": "Commands"
   },
   {
     "title": "Discovery",
-    "content": "Command                             Description agent-cu snapshot -a App -i -c    Get accessibility tree with refs agent-cu find 'selector' -a App   Find elements matching a selector agent-cu get-value @e5            Get element value, name, role, position agent-cu text -a App              Get all visible text agent-cu tree -a App              Raw accessibility tree (JSON) agent-cu windows -a App           List windows with positions agent-cu apps                     List running applications agent-cu focused                  Get the focused element",
+    "content": "Command                         Description agcu snapshot -a App -i -c    Get accessibility tree with refs agcu find 'selector' -a App   Find elements matching a selector agcu get-value @e5            Get element value, name, role, position agcu text -a App              Get all visible text agcu tree -a App              Raw accessibility tree (JSON) agcu windows -a App           List windows with positions agcu apps                     List running applications agcu focused                  Get the focused element",
     "href": "/commands#window-management",
     "pageTitle": "Commands"
   },
   {
     "title": "Window Management",
-    "content": "Command                                                    Description agent-cu open App --wait                                 Launch an application agent-cu move-window -a App --x 100 --y 100              Move window position (headless) agent-cu resize-window -a App --width 800 --height 600   Resize window (headless) agent-cu screenshot -a App --path shot.png               Take a screenshot",
+    "content": "Command                                                Description agcu open App --wait                                 Launch an application agcu move-window -a App --x 100 --y 100              Move window position (headless) agcu resize-window -a App --width 800 --height 600   Resize window (headless) agcu screenshot -a App --path shot.png               Take a screenshot agcu screenshot -a App --path shot.png --grid        Add a coordinate grid (macOS)",
+    "href": "/commands#screenshot-coordinate-grid",
+    "pageTitle": "Commands"
+  },
+  {
+    "title": "Screenshot coordinate grid",
+    "content": "--grid is optional and off by default. On macOS, it overlays lines every 100 absolute screen points, with x labels across the top and y labels down the left. Use those values directly with the existing coordinate click command: -a App activates the app when clicking; it does not make coordinates window-relative. A window captured at 2× Retina resolution with origin (125, 80) places screen point (400, 300) at image pixel (550, 440). Click using 400, 300, not the image pixels. The grid already accounts for window origin and image scale. Image viewers may resize the screenshot; read the numeric labels instead of assuming displayed pixels are click coordinates. Without -a, agcu screenshot --grid captures only the main display. Omitting --path keeps the existing auto-generated path. Plain screenshots remain unchanged. Linux and Windows reject --grid with action_not_supported, without writing the output file; omit the flag for a plain screenshot on those platforms. Recapture after moving/resizing windows or changing display configuration. App activation or UI changes can invalidate a target, so verify the result after clicking. Coordinate clicks can move the mouse and steal focus. Capture/render/write failures return a nonzero status and the existing JSON error envelope, never a successful unannotated image. Check Screen Recording permission and window availability if native capture fails; permissions are not granted automatically.",
     "href": "/commands#wait-verify",
     "pageTitle": "Commands"
   },
   {
     "title": "Wait & Verify",
-    "content": "Command                                       Description agent-cu wait-for 'selector'                Wait for an element to appear agent-cu ensure-text @e3 \"hello\"            Only types if current value differs agent-cu click @e5 --expect 'name=\"Done\"'   Click then verify a result appeared",
+    "content": "Command                                   Description agcu wait-for 'selector'                Wait for an element to appear agcu ensure-text @e3 \"hello\"            Only types if current value differs agcu click @e5 --expect 'name=\"Done\"'   Click then verify a result appeared",
     "href": "/commands#automation",
     "pageTitle": "Commands"
   },
   {
     "title": "Automation",
-    "content": "Command                        Description agent-cu batch --bail        Execute commands from stdin JSON array agent-cu run workflow.yaml   Run a multi-step YAML workflow agent-cu observe -a App      Interactive TUI tree explorer",
+    "content": "Command                    Description agcu batch --bail        Execute commands from stdin JSON array agcu run workflow.yaml   Run a multi-step YAML workflow agcu observe -a App      Interactive TUI tree explorer",
     "href": "/commands#system",
     "pageTitle": "Commands"
   },
   {
     "title": "System",
-    "content": "Command                        Description agent-cu check-permissions   Verify accessibility access",
+    "content": "Command                    Description agcu check-permissions   Verify accessibility access",
     "href": "/commands#snapshot-options",
     "pageTitle": "Commands"
   },
@@ -235,7 +247,7 @@
   },
   {
     "title": "Tips",
-    "content": "- Always snapshot first to get fresh refs - Use id= selectors when available — most stable across UI changes - Use --count 2 for items that need double-click (file lists, track lists) - Check with agent-cu get-value @e5 if unsure whether an element is clickable",
+    "content": "- Always snapshot first to get fresh refs - Use id= selectors when available — most stable across UI changes - Use --count 2 for items that need double-click (file lists, track lists) - Check with agcu get-value @e5 if unsure whether an element is clickable",
     "href": "/commands/click",
     "pageTitle": "click"
   },
@@ -307,13 +319,13 @@
   },
   {
     "title": "YAML Workflows",
-    "content": "title=\"YAML Workflows\" description=\"Define multi-step automations in YAML files.\" /> Workflows let you chain multiple agent-cu commands into a single replayable file.",
+    "content": "Workflows let you chain multiple agcu commands into a single replayable file.",
     "href": "/workflows#example-workflow",
     "pageTitle": "YAML Workflows"
   },
   {
     "title": "Batch Execution",
-    "content": "title=\"Batch Execution\" description=\"Execute multiple commands in a single process invocation.\" /> Pipe a JSON array of commands to agent-cu batch to avoid per-command startup overhead.",
+    "content": "title=\"Batch Execution\" description=\"Execute multiple commands in a single process invocation.\" /> Pipe a JSON array of commands to agcu batch to avoid per-command startup overhead.",
     "href": "/batch#usage",
     "pageTitle": "Batch Execution"
   },

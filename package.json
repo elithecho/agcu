@@ -1,12 +1,12 @@
 {
-  "name": "agent-cu",
-  "version": "0.1.1",
+  "name": "agcu",
+  "version": "0.1.0",
   "description": "Computer use CLI for AI agents",
   "license": "MIT",
-  "repository": "https://github.com/kortix-ai/agent-computer-use",
+  "repository": "https://github.com/elithecho/agcu",
   "packageManager": "pnpm@10.7.0",
   "bin": {
-    "agent-cu": "./bin/agent-cu.js"
+    "agcu": "./bin/agcu.js"
   },
   "publishConfig": {
     "provenance": true
@@ -22,7 +22,8 @@
     "build:debug": "cd cli && cargo build",
     "build:docs": "pnpm --filter docs build",
     "build:all": "./scripts/build-all.sh",
-    "test": "cd cli && cargo test",
+    "test": "cargo test --manifest-path cli/Cargo.toml --workspace && pnpm test:package",
+    "test:package": "node --test scripts/test-cli-package.mjs",
     "test:e2e": "./scripts/e2e.sh",
     "lint": "cd cli && cargo fmt --check && cargo clippy -- -D warnings",
     "format": "cd cli && cargo fmt && cd .. && prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md,mdx,yaml,yml}\"",

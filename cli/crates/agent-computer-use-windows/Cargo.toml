@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Windows backend for agent-computer-use — uses UI Automation (UIA) APIs"
+description = "Windows backend for agcu — uses UI Automation (UIA) APIs"
 
 [dependencies]
 agent-computer-use-core = { workspace = true }

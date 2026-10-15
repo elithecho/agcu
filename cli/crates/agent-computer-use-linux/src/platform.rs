@@ -236,12 +236,14 @@ mod real {
                     })
                 }
 
-                Action::Screenshot { path, app } => {
+                Action::Screenshot { path, app, grid } => {
+                    if *grid {
+                        return Err(Error::ActionNotSupported {
+                            message: "screenshot --grid is currently supported on macOS only; omit --grid for a plain screenshot".into(),
+                        });
+                    }
                     let save_path = path.clone().unwrap_or_else(|| {
-                        format!(
-                            "{}/agent-computer-use-screenshot.png",
-                            std::env::temp_dir().display()
-                        )
+                        format!("{}/agcu-screenshot.png", std::env::temp_dir().display())
                     });
                     let saved = input::screenshot(&save_path, app.as_deref())?;
                     Ok(ActionResult {

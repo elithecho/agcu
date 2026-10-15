@@ -1,6 +1,6 @@
-# Contributing to agent-computer-use
+# Contributing to agcu
 
-Thanks for your interest! agent-cu aims to be the universal CLI for desktop
+Thanks for your interest! agcu aims to be the universal CLI for desktop
 automation — and that's only possible with community help.
 
 ## Where to contribute
@@ -13,9 +13,9 @@ automation — and that's only possible with community help.
 
 - **Windows backend** (`crates/agent-computer-use-windows/`) — Implement UI Automation
   using `windows-rs`. Focus on `IUIAutomationInvokePattern::Invoke()` for
-  background clicks (agent-computer-use's killer feature).
+  background clicks (agcu's killer feature).
 
-- **MCP server** (`crates/agent-computer-use-mcp/`) — Expose agent-cu as an MCP tool server
+- **MCP server** (`crates/agent-computer-use-mcp/`) — Expose agcu as an MCP tool server
   so AI agents can use it directly.
 
 ### Good first issues
@@ -57,8 +57,8 @@ The `src/` directory and `agent-computer-use-core` are platform-agnostic.
 ## Development setup
 
 ```bash
-git clone https://github.com/kortix-ai/agent-computer-use
-cd agent-computer-use
+git clone https://github.com/elithecho/agcu
+cd agcu
 cargo build
 cargo test
 cargo run -- snapshot Calculator -i

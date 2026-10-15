@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/docs';
 ## Usage
 
 ```bash
-agent-cu click [SELECTOR] [OPTIONS]
+agcu click [SELECTOR] [OPTIONS]
 ```
 
 ## Options
@@ -31,25 +31,25 @@ For single left-clicks, AXPress handles ~95% of cases headlessly. Double-click a
 
 ```bash
 # By ref (from snapshot)
-agent-cu click @e5
+agcu click @e5
 
 # By selector
-agent-cu click 'name="Login"' -a Safari
-agent-cu click 'id="play"' -a Music
-agent-cu click 'id~="track-123"' -a Music    # partial id match
-agent-cu click 'button "Submit"' -a Safari   # shorthand
+agcu click 'name="Login"' -a Safari
+agcu click 'id="play"' -a Music
+agcu click 'id~="track-123"' -a Music    # partial id match
+agcu click 'button "Submit"' -a Safari   # shorthand
 
 # Double-click (opens files, plays songs)
-agent-cu click @e5 --count 2
+agcu click @e5 --count 2
 
 # Right-click
-agent-cu click @e5 --button right
+agcu click @e5 --button right
 
 # Coordinate click (when no selector works)
-agent-cu click --x 500 --y 300 -a Finder
+agcu click --x 500 --y 300 -a Finder
 
 # Click then verify
-agent-cu click @e5 --expect 'name="Dashboard"'
+agcu click @e5 --expect 'name="Dashboard"'
 ```
 
 ## CDP (Electron apps)
@@ -57,7 +57,7 @@ agent-cu click @e5 --expect 'name="Dashboard"'
 For Electron apps (Slack, Cursor, VS Code), click routes through CDP automatically:
 
 ```bash
-agent-cu click @e5    # JS element.click() via CDP — fully headless
+agcu click @e5    # JS element.click() via CDP — fully headless
 ```
 
 No window activation, no mouse, no coordinates. The element is clicked via JavaScript.
@@ -67,4 +67,4 @@ No window activation, no mouse, no coordinates. The element is clicked via JavaS
 - Always snapshot first to get fresh refs
 - Use `id=` selectors when available — most stable across UI changes
 - Use `--count 2` for items that need double-click (file lists, track lists)
-- Check with `agent-cu get-value @e5` if unsure whether an element is clickable
+- Check with `agcu get-value @e5` if unsure whether an element is clickable
