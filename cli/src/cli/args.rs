@@ -432,7 +432,7 @@ pub enum Command {
         /// Capture only this process's window (macOS)
         #[arg(long, conflicts_with = "app", value_parser = clap::value_parser!(i32).range(1..))]
         pid: Option<i32>,
-        /// Overlay absolute click coordinates every 100 screen points (macOS only).
+        /// Overlay absolute click coordinates every 100 screen points (macOS / Windows).
         /// Without --app/--pid, capture only the main display.
         #[arg(long)]
         grid: bool,

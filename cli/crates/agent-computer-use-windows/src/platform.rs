@@ -323,15 +323,14 @@ mod real {
                     })
                 }
 
-                Action::Screenshot { path, app: _, grid } => {
-                    if *grid {
-                        return Err(Error::ActionNotSupported {
-                            message: "screenshot --grid is currently supported on macOS only; omit --grid for a plain screenshot".into(),
-                        });
-                    }
+                Action::Screenshot { path, app, grid } => {
                     let save_path = path.clone().unwrap_or_else(|| {
                         format!("{}\\agcu-screenshot.png", std::env::temp_dir().display())
                     });
+
+                    if *grid {
+                        return screenshot_grid_to_png(&save_path, app.as_deref(), self);
+                    }
 
                     let ps_script = format!(
                         r#"Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height); $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size); $bmp.Save('{}', [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()"#,
@@ -714,6 +713,225 @@ mod real {
                 _ => None,
             }
         }
+    }
+
+    fn screenshot_grid_to_png(
+        output_path: &str,
+        app: Option<&str>,
+        platform: &WindowsPlatform,
+    ) -> Result<ActionResult> {
+        use crate::screenshot::{overlay, Bounds};
+        use std::path::Path;
+
+        let out = Path::new(output_path);
+        if let Some(parent) = out.parent() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
+                return Err(Error::PlatformError {
+                    message: format!("failed to write PNG screenshot: {output_path}"),
+                });
+            }
+        }
+
+        // App window: prefer PrintWindow (works headless / occluded, gives
+        // true window pixels). Fullscreen: CopyFromScreen primary display.
+        let (left, top, width, height, hwnd_opt) = resolve_capture_target(platform, app)?;
+
+        if width < 10 || height < 10 {
+            return Err(Error::PlatformError {
+                message: "capture region is too small; the window may be missing or minimized"
+                    .into(),
+            });
+        }
+
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let tmp = std::env::temp_dir().join(format!(
+            "agcu-grid-src-{}-{}.png",
+            std::process::id(),
+            nanos
+        ));
+        let tmp_str = tmp.to_string_lossy().to_string();
+
+        if let Some(hwnd) = hwnd_opt {
+            capture_window_to_png(hwnd, width, height, &tmp_str)?;
+        } else {
+            capture_rect_to_png(left, top, width, height, &tmp_str)?;
+        }
+
+        let mut img = image::open(&tmp)
+            .map_err(|e| Error::PlatformError {
+                message: format!("failed to read screenshot capture: {e}"),
+            })?
+            .to_rgba8();
+        let _ = std::fs::remove_file(&tmp);
+
+        // Sanity: captured pixels must match requested region size.
+        // CopyFromScreen can return a differently sized bitmap on DPI edge cases.
+        if img.width() == 0 || img.height() == 0 {
+            return Err(Error::PlatformError {
+                message: "capture is empty; the window may be missing or unreadable".into(),
+            });
+        }
+
+        overlay(
+            &mut img,
+            Bounds {
+                x: left as f64,
+                y: top as f64,
+                width: width as f64,
+                height: height as f64,
+            },
+        )?;
+
+        img.save(output_path).map_err(|e| Error::PlatformError {
+            message: format!("failed to write PNG screenshot: {e}"),
+        })?;
+
+        Ok(ActionResult {
+            success: true,
+            message: Some(format!(
+                "screenshot saved to {output_path} with coordinate grid (100 screen points)"
+            )),
+            path: Some(output_path.into()),
+            data: None,
+        })
+    }
+
+    /// Returns (left, top, width, height, hwnd). `hwnd` is Some for app
+    /// windows (PrintWindow path) and None for fullscreen (CopyFromScreen).
+    fn resolve_capture_target(
+        platform: &WindowsPlatform,
+        app: Option<&str>,
+    ) -> Result<(i32, i32, i32, i32, Option<isize>)> {
+        if let Some(name) = app {
+            let hwnd = find_hwnd_for_app(platform, name).ok_or_else(|| Error::PlatformError {
+                message: format!("no window found for '{name}'"),
+            })?;
+            unsafe {
+                let mut rect = RECT::default();
+                GetWindowRect(hwnd, &mut rect).map_err(|e| Error::PlatformError {
+                    message: format!("failed to get window rect: {e}"),
+                })?;
+                Ok((
+                    rect.left,
+                    rect.top,
+                    rect.right - rect.left,
+                    rect.bottom - rect.top,
+                    Some(hwnd.0 as isize),
+                ))
+            }
+        } else {
+            unsafe {
+                let w = GetSystemMetrics(SM_CXSCREEN);
+                let h = GetSystemMetrics(SM_CYSCREEN);
+                Ok((0, 0, w, h, None))
+            }
+        }
+    }
+
+    fn find_hwnd_for_app(platform: &WindowsPlatform, name: &str) -> Option<HWND> {
+        // 1) PID match (classic desktop apps).
+        if let Ok(pid) = platform.find_app_pid(name) {
+            if let Some(hwnd) = find_window_for_pid(pid) {
+                return Some(hwnd);
+            }
+        }
+        // 2) Window-title contains (UWP like Calculator hosted under
+        //    ApplicationFrameHost / cmd, where process name != title).
+        find_window_by_title_contains(name)
+    }
+
+    struct TitleSearch {
+        query: String,
+        best: Option<HWND>,
+        best_area: i64,
+    }
+
+    fn find_window_by_title_contains(query: &str) -> Option<HWND> {
+        unsafe {
+            let mut ctx = TitleSearch {
+                query: query.to_lowercase(),
+                best: None,
+                best_area: 0,
+            };
+            let _ = EnumWindows(
+                Some(find_title_callback),
+                LPARAM(&mut ctx as *mut TitleSearch as isize),
+            );
+            ctx.best
+        }
+    }
+
+    unsafe extern "system" fn find_title_callback(hwnd: HWND, lparam: LPARAM) -> BOOL {
+        let ctx = &mut *(lparam.0 as *mut TitleSearch);
+        if !IsWindowVisible(hwnd).as_bool() {
+            return TRUE;
+        }
+        let style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+        if style & WS_EX_TOOLWINDOW.0 != 0 {
+            return TRUE;
+        }
+        let mut title_buf = [0u16; 512];
+        let len = GetWindowTextW(hwnd, &mut title_buf);
+        if len == 0 {
+            return TRUE;
+        }
+        let title = String::from_utf16_lossy(&title_buf[..len as usize]);
+        if title.to_lowercase().contains(&ctx.query) {
+            let mut rect = RECT::default();
+            if GetWindowRect(hwnd, &mut rect).is_ok() {
+                let area = ((rect.right - rect.left) as i64) * ((rect.bottom - rect.top) as i64);
+                if area > ctx.best_area {
+                    ctx.best_area = area;
+                    ctx.best = Some(hwnd);
+                }
+            } else if ctx.best.is_none() {
+                ctx.best = Some(hwnd);
+            }
+        }
+        TRUE
+    }
+
+    fn capture_rect_to_png(x: i32, y: i32, w: i32, h: i32, dest: &str) -> Result<()> {
+        let ps_script = format!(
+            r#"Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $bmp = New-Object System.Drawing.Bitmap({w}, {h}); $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen({x}, {y}, 0, 0, $bmp.Size); $bmp.Save('{}', [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()"#,
+            dest.replace('\'', "''")
+        );
+        let output = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", &ps_script])
+            .output()
+            .map_err(|e| Error::PlatformError {
+                message: format!("failed to run powershell for screenshot: {e}"),
+            })?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::PlatformError {
+                message: format!("screenshot failed: {stderr}"),
+            });
+        }
+        Ok(())
+    }
+
+    fn capture_window_to_png(hwnd: isize, w: i32, h: i32, dest: &str) -> Result<()> {
+        let escaped = dest.replace('\'', "''");
+        let ps_script = format!(
+            r#"Add-Type -AssemblyName System.Drawing; Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class AgcuPrint {{ [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hWnd, IntPtr hdc, uint f); }}'; $bmp = New-Object System.Drawing.Bitmap({w}, {h}); $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc(); $ok = [AgcuPrint]::PrintWindow([IntPtr]{hwnd}, $hdc, 3); $g.ReleaseHdc($hdc); if (-not $ok) {{ throw "PrintWindow failed" }}; $bmp.Save('{escaped}', [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()"#
+        );
+        let output = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-Command", &ps_script])
+            .output()
+            .map_err(|e| Error::PlatformError {
+                message: format!("failed to run powershell for screenshot: {e}"),
+            })?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(Error::PlatformError {
+                message: format!("window capture failed: {stderr}"),
+            });
+        }
+        Ok(())
     }
 }
 
