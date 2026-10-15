@@ -399,6 +399,22 @@ fn cftype_to_string(value: core_foundation::base::CFTypeRef) -> Option<String> {
     }
 }
 
+fn value_from_selected_state(role: &Role, is_selected: Option<bool>) -> Option<String> {
+    match role {
+        Role::CheckBox | Role::Switch => is_selected.map(|selected| selected.to_string()),
+        _ => None,
+    }
+}
+
+fn selected_value_for_role(element: AXUIElementRef, role: &Role) -> Option<String> {
+    match role {
+        Role::CheckBox | Role::Switch => {
+            value_from_selected_state(role, get_bool_attribute(element, "AXSelected"))
+        }
+        _ => None,
+    }
+}
+
 fn cftype_to_bool(value: core_foundation::base::CFTypeRef) -> Option<bool> {
     if value.is_null() {
         return None;
@@ -433,7 +449,7 @@ fn element_to_node_batch(
     let title = cftype_to_string(attrs[1]);
     let description = cftype_to_string(attrs[2]);
     let name = title.or(description.clone());
-    let value = cftype_to_string(attrs[3]);
+    let value = cftype_to_string(attrs[3]).or_else(|| selected_value_for_role(element, &role));
     let id = cftype_to_string(attrs[4]);
     let position = extract_position(attrs[5]);
     let size = extract_size(attrs[6]);
@@ -471,7 +487,8 @@ fn element_to_node_slow(
     let role = map_role(&role_str);
     let name = get_string_attribute(element, "AXTitle")
         .or_else(|| get_string_attribute(element, "AXDescription"));
-    let value = get_string_attribute(element, "AXValue");
+    let value = get_string_attribute(element, "AXValue")
+        .or_else(|| selected_value_for_role(element, &role));
     let description = get_string_attribute(element, "AXHelp");
     let id = get_string_attribute(element, "AXIdentifier");
     let position = get_position(element);
@@ -938,4 +955,56 @@ pub fn set_window_size(pid: i32, width: f64, height: f64) -> bool {
         release_element(*c);
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts_checkbox_and_switch_selected_states_to_values() {
+        for role in [Role::CheckBox, Role::Switch] {
+            assert_eq!(
+                value_from_selected_state(&role, Some(true)),
+                Some("true".to_string())
+            );
+            assert_eq!(
+                value_from_selected_state(&role, Some(false)),
+                Some("false".to_string())
+            );
+            assert_eq!(value_from_selected_state(&role, None), None);
+        }
+    }
+
+    #[test]
+    fn does_not_use_selection_as_value_for_other_roles() {
+        for role in [Role::Button, Role::RadioButton, Role::Tab, Role::ListItem] {
+            for selected in [Some(true), Some(false), None] {
+                assert_eq!(value_from_selected_state(&role, selected), None);
+            }
+        }
+    }
+
+    #[test]
+    fn batch_conversion_preserves_ax_value_and_handles_missing_selection() {
+        for role in ["AXCheckBox", "AXSwitch", "AXButton"] {
+            let cf_role = CFString::new(role);
+            let cf_value = CFString::new("existing value");
+            let cf_empty = CFString::new("");
+            let cf_bool = core_foundation::boolean::CFBoolean::true_value();
+            let mut attrs = vec![ptr::null(); BATCH_ATTRS.len()];
+            attrs[0] = cf_role.as_CFTypeRef();
+            attrs[3] = cf_value.as_CFTypeRef();
+
+            let node = element_to_node_batch(ptr::null_mut(), &attrs, Some(0), 0);
+            assert_eq!(node.role, map_role(role));
+            assert_eq!(node.value.as_deref(), Some("existing value"));
+
+            for missing_value in [ptr::null(), cf_empty.as_CFTypeRef(), cf_bool.as_CFTypeRef()] {
+                attrs[3] = missing_value;
+                let node = element_to_node_batch(ptr::null_mut(), &attrs, Some(0), 0);
+                assert_eq!(node.value, None);
+            }
+        }
+    }
 }
